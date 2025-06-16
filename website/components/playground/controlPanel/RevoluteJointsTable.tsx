@@ -5,8 +5,10 @@ import {
   UpdateJointDegrees,
   UpdateJointsDegrees,
 } from "../../../hooks/useRobotControl";
-import { radiansToDegrees } from "../../../lib/utils";
+import { radiansToDegrees,degreesToRadians } from "../../../lib/utils";
 import { RobotConfig } from "@/config/robotConfig";
+import { roarm_m3 } from "@/config/roarm_solver"; 
+import { StepBack } from "lucide-react";
 
 type RevoluteJointsTableProps = {
   joints: JointState[];
@@ -31,9 +33,6 @@ const formatRealDegrees = (degrees?: number | "N/A" | "error") => {
   return degrees === "N/A" ? "/" : `${degrees?.toFixed(1)}°`;
 };
 
-// compoundMovements 约定：keys[0] 是正向运动，keys[1] 是反向运动
-// 例如 keys: ["8", "i"]，"8" 控制正向，"i" 控制反向
-
 export function RevoluteJointsTable({
   joints,
   updateJointDegrees,
@@ -46,6 +45,7 @@ export function RevoluteJointsTable({
   const jointsRef = useRef(joints);
   const updateJointsDegreesRef = useRef(updateJointsDegrees);
   const keyboardControlMapRef = useRef(keyboardControlMap);
+  const [pose, setPose] = useState([200, 0, 50]); // Initial pose
 
   // Update refs whenever the props change
   useEffect(() => {
@@ -92,6 +92,7 @@ export function RevoluteJointsTable({
     };
   }, []); // Empty dependency array: sets up listeners once
 
+  const currPoseRef = { current: [200, 0, 50] }; 
   // Effect for handling continuous updates when keys are pressed
   useEffect(() => {
     let intervalId: NodeJS.Timeout | null = null;
@@ -102,149 +103,124 @@ export function RevoluteJointsTable({
       const currentPressedKeys = pressedKeys;
       const currentCompoundMovements = compoundMovements || [];
 
-      // 普通单关节控制
-      let updates = currentJoints
+      let updates: { servoId: number; value: number }[] = [];
+
+      // ------------------------
+      // 单独关节控制
+      // ------------------------
+      updates = currentJoints
         .map((joint) => {
-          const decreaseKey = currentControlMap[joint.servoId!]?.[1];
+          const currentDegrees = joint.virtualDegrees || 0;
           const increaseKey = currentControlMap[joint.servoId!]?.[0];
-          let currentDegrees = joint.virtualDegrees || 0;
-          let newValue = currentDegrees;
+          const isReverse = currentPressedKeys.has("r");
 
-          if (decreaseKey && currentPressedKeys.has(decreaseKey)) {
-            newValue -= KEY_UPDATE_STEP_DEGREES;
-          }
           if (increaseKey && currentPressedKeys.has(increaseKey)) {
-            newValue += KEY_UPDATE_STEP_DEGREES;
-          }
+            let newValue = currentDegrees + (isReverse ? -KEY_UPDATE_STEP_DEGREES : KEY_UPDATE_STEP_DEGREES);
+            console.log("1",newValue, currentDegrees, joint.servoId);
+            const lowerLimit = radiansToDegrees(joint.limit?.lower ?? -Infinity);
+            const upperLimit = radiansToDegrees(joint.limit?.upper ?? Infinity);
+            newValue = Math.max(lowerLimit, Math.min(upperLimit, newValue));
 
-          const lowerLimit = Math.round(
-            radiansToDegrees(joint.limit?.lower ?? -Infinity)
-          );
-          const upperLimit = Math.round(
-            radiansToDegrees(joint.limit?.upper ?? Infinity)
-          );
-          newValue = Math.max(lowerLimit, Math.min(upperLimit, newValue));
-
-          if (newValue !== currentDegrees) {
-            return { servoId: joint.servoId!, value: newValue };
+            if (newValue !== currentDegrees) {
+              return { servoId: joint.servoId!, value: newValue };
+            }
           }
           return null;
         })
-        .filter((update) => update !== null) as {
-        servoId: number;
-        value: number;
-      }[];
+        .filter((u) => u !== null) as { servoId: number; value: number }[];
 
-      // 处理 compoundMovements，覆盖普通单关节控制
+      const updatesMap = new Map<number, number>();
+      updates.forEach((u) => updatesMap.set(u.servoId, u.value));
+
+      const getDegree = (id: number): number => {
+        if (updatesMap.has(id)) return updatesMap.get(id)!;
+        const joint = currentJoints.find((j) => j.servoId === id);
+        return joint?.virtualDegrees ?? 0;
+      };
+
+      const base_joint_rad = degreesToRadians(getDegree(1));
+      const shoulder_joint_rad = degreesToRadians(getDegree(2));
+      const elbow_joint_rad = degreesToRadians(getDegree(3));
+      const wrist_joint_rad = degreesToRadians(getDegree(4));
+      const roll_joint_rad = degreesToRadians(getDegree(5));
+      const hand_joint_rad = degreesToRadians(getDegree(6));
+
+      // 更新全局位姿
+      currPoseRef.current = roarm_m3.computePosbyJointRad(
+        base_joint_rad,
+        shoulder_joint_rad,
+        elbow_joint_rad,
+        wrist_joint_rad,
+        roll_joint_rad,
+        hand_joint_rad
+      );
+
+      // ------------------------
+      // 坐标控制（XYZ控制）
+      // ------------------------
+      let nextPose = [...currPoseRef.current];
+      let poseChanged = false;
+
       currentCompoundMovements.forEach((cm) => {
-        // 判断是否有 key 被按下
-        // keys[0] 为正向，keys[1] 为反向
-        const pressedIdx = cm.keys.findIndex((k) => currentPressedKeys.has(k));
-        if (pressedIdx === -1) return;
+        if (!cm || !cm.name) return;
+        if (cm.name.includes("X") || cm.name.includes("Y") || cm.name.includes("Z")) {
+          const keyPressed = currentPressedKeys.has(cm.keys[0]);
+          const isReverse = currentPressedKeys.has("r");
+          if (!keyPressed) return;
 
-        // primaryJoint 当前角度
-        const primaryJoint = currentJoints.find(
-          (j) => j.servoId === cm.primaryJoint
-        );
-        if (!primaryJoint) return;
-        const primary = primaryJoint.virtualDegrees || 0;
+          const delta = isReverse ? -0.2 : 0.2;
 
-        // 取第一个 dependent joint 作为 dependent
-        const dependentJointId = cm.dependents[0]?.joint;
-        const dependentJoint = currentJoints.find(
-          (j) => j.servoId === dependentJointId
-        );
-        const dependent = dependentJoint?.virtualDegrees || 0;
-
-        // 步进大小总是 KEY_UPDATE_STEP_DEGREES
-        // sign 决定方向，正向为 +1，反向为 -1
-        let sign = 1;
-        if (cm.primaryFormula) {
-          try {
-            // eslint-disable-next-line no-new-func
-            sign =
-              Math.sign(
-                Function(
-                  "primary",
-                  "dependent",
-                  "delta",
-                  `return ${cm.primaryFormula}`
-                )(primary, dependent, KEY_UPDATE_STEP_DEGREES)
-              ) || 1;
-          } catch (e) {
-            sign = 1;
+          if (cm.name.includes("X")) {
+            nextPose[0] += delta;
+            poseChanged = true;
+          } else if (cm.name.includes("Y")) {
+            nextPose[1] += delta;
+            poseChanged = true;
+          } else if (cm.name.includes("Z")) {
+            nextPose[2] += delta;
+            poseChanged = true;
           }
-        } else {
-          sign = pressedIdx === 0 ? 1 : -1;
         }
-        // 按键顺序决定 deltaPrimary 正负
-        const deltaPrimary =
-          KEY_UPDATE_STEP_DEGREES * sign * (pressedIdx === 0 ? 1 : -1);
-
-        // primaryJoint 新值
-        let newPrimaryValue = primary + deltaPrimary;
-        const lowerLimit = Math.round(
-          radiansToDegrees(primaryJoint.limit?.lower ?? -Infinity)
-        );
-        const upperLimit = Math.round(
-          radiansToDegrees(primaryJoint.limit?.upper ?? Infinity)
-        );
-        newPrimaryValue = Math.max(
-          lowerLimit,
-          Math.min(upperLimit, newPrimaryValue)
-        );
-
-        // 用 Map 方便覆盖
-        const updatesMap = new Map<number, number>();
-        updates.forEach((u) => updatesMap.set(u.servoId, u.value));
-        updatesMap.set(primaryJoint.servoId!, newPrimaryValue);
-
-        // dependents
-        cm.dependents.forEach((dep) => {
-          const dependentJoint = currentJoints.find(
-            (j) => j.servoId === dep.joint
-          );
-          if (!dependentJoint) return;
-          const dependent = dependentJoint.virtualDegrees || 0;
-          let deltaDependent = 0;
-          try {
-            // eslint-disable-next-line no-new-func
-            deltaDependent = Function(
-              "primary",
-              "dependent",
-              "deltaPrimary",
-              `return ${dep.formula}`
-            )(primary, dependent, deltaPrimary);
-          } catch (e) {
-            deltaDependent = 0;
-          }
-          // If deltaDependent is not a valid number, set it to 0
-          if (!Number.isFinite(deltaDependent)) {
-            deltaDependent = 0;
-          }
-          let newDependentValue = dependent + deltaDependent;
-          const depLowerLimit = Math.round(
-            radiansToDegrees(dependentJoint.limit?.lower ?? -Infinity)
-          );
-          const depUpperLimit = Math.round(
-            radiansToDegrees(dependentJoint.limit?.upper ?? Infinity)
-          );
-          newDependentValue = Math.max(
-            depLowerLimit,
-            Math.min(depUpperLimit, newDependentValue)
-          );
-          updatesMap.set(dependentJoint.servoId!, newDependentValue);
-        });
-
-        // compoundMovements 的 joint 更新覆盖普通单关节控制
-        updates = Array.from(updatesMap.entries()).map(([servoId, value]) => ({
-          servoId,
-          value,
-        }));
       });
 
-      if (updates.length > 0) {
-        updateJointsDegreesRef.current(updates);
+      if (poseChanged) {
+        setPose(nextPose);
+      }
+
+      // ------------------------
+      // 坐标逆解控制关节
+      // ------------------------
+      const ikResults = roarm_m3.computeJointRadbyPos(
+        nextPose[0],
+        nextPose[1],
+        nextPose[2],
+        currPoseRef.current[3],
+        currPoseRef.current[4]
+      );
+
+      const ikUpdates = currentJoints
+        .map((joint, idx) => {
+          const hasIk = idx < ikResults.length;
+          const targetRad = hasIk
+            ? ikResults[idx]
+            : degreesToRadians(joint.virtualDegrees ?? 0); // 保留原角度
+
+          const deg = radiansToDegrees(targetRad);
+          const lowerLimit = radiansToDegrees(joint.limit?.lower ?? -Infinity);
+          const upperLimit = radiansToDegrees(joint.limit?.upper ?? Infinity);
+          const value = Math.max(lowerLimit, Math.min(upperLimit, deg));
+
+          if (Math.abs(value - (joint.virtualDegrees ?? 0)) > 1e-3) {
+            return { servoId: joint.servoId!, value };
+          }
+          return null;
+        })
+        .filter(Boolean) as { servoId: number; value: number }[];
+
+      if (ikUpdates.length > 0) {
+        updateJointsDegreesRef.current(ikUpdates);
+      } else if (updates.length > 0) {
+        updateJointsDegreesRef.current(updates); // 单独关节更新
       }
     };
 
@@ -253,11 +229,9 @@ export function RevoluteJointsTable({
     }
 
     return () => {
-      if (intervalId) {
-        clearInterval(intervalId);
-      }
+      if (intervalId) clearInterval(intervalId);
     };
-  }, [pressedKeys]); // Re-run this effect only when pressedKeys changes
+  }, [pressedKeys, pose]);
 
   // Mouse handlers update the `pressedKeys` state, which triggers the interval effect
   const handleMouseDown = (key: string | undefined) => {

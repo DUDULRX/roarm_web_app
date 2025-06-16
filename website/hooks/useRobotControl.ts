@@ -31,15 +31,8 @@ export type UpdateJointDegrees = (
   servoId: number,
   value: number
 ) => Promise<void>;
-export type UpdateJointSpeed = (
-  servoId: number,
-  speed: number
-) => Promise<void>;
 export type UpdateJointsDegrees = (
   updates: { servoId: number; value: number }[]
-) => Promise<void>;
-export type UpdateJointsSpeed = (
-  updates: { servoId: number; speed: number }[]
 ) => Promise<void>;
 
 export function useRobotControl(initialJointDetails: JointDetails[]) {
@@ -81,37 +74,16 @@ export function useRobotControl(initialJointDetails: JointDetails[]) {
   // Connect to the robot
   const connectRobot = useCallback(async () => {
     try {
-      await scsServoSDK.connect();
+      // const port = new SerialPort({
+      //   path: '/dev/ttyACM0', 
+      //   baudRate: 115200,
+      // });
       setIsConnected(true);
       console.log("Robot connected successfully.");
 
       const newStates = [...jointStates];
       const initialPos: number[] = [];
-      for (let i = 0; i < jointDetails.length; i++) {
-        try {
-          if (jointDetails[i].jointType === "continuous") {
-            await scsServoSDK.setWheelMode(jointDetails[i].servoId);
-            newStates[i].realSpeed = 0;
-          } else {
-            await scsServoSDK.setPositionMode(jointDetails[i].servoId);
-            const servoPosition = await scsServoSDK.readPosition(jointDetails[i].servoId);
-            const positionInDegrees = servoPositionToAngle(servoPosition);
-            initialPos.push(positionInDegrees);
-            newStates[i].realDegrees = positionInDegrees;
 
-            // Enable torque for revolute servos
-            await scsServoSDK.writeTorqueEnable(jointDetails[i].servoId, true);
-          }
-        } catch (error) {
-          console.error(`Failed to initialize joint ${jointDetails[i].servoId}:`, error);
-          initialPos.push(0);
-          if (jointDetails[i].jointType === "revolute") {
-            newStates[i].realDegrees = "error";
-          } else if (jointDetails[i].jointType === "continuous") {
-            newStates[i].realSpeed = "error";
-          }
-        }
-      }
       setInitialPositions(initialPos);
       setJointStates(newStates);
     } catch (error) {
@@ -124,17 +96,7 @@ export function useRobotControl(initialJointDetails: JointDetails[]) {
     try {
       // Disable torque for revolute servos and set wheel speed to 0 for continuous servos
       for (let i = 0; i < jointDetails.length; i++) {
-        try {
-          if (jointDetails[i].jointType === "continuous") {
-            await scsServoSDK.writeWheelSpeed(jointDetails[i].servoId, 0);
-          }
-          await scsServoSDK.writeTorqueEnable(jointDetails[i].servoId, false);
-        } catch (error) {
-          console.error(
-            `Failed to reset joint ${jointDetails[i].servoId} during disconnect:`,
-            error
-          );
-        }
+
       }
 
       await scsServoSDK.disconnect();
@@ -197,36 +159,6 @@ export function useRobotControl(initialJointDetails: JointDetails[]) {
       }
     },
     [jointStates, isConnected, initialPositions]
-  );
-
-  // Update continuous joint speed
-  const updateJointSpeed = useCallback(
-    async (servoId: number, speed: number) => {
-      const newStates = [...jointStates];
-      const jointIndex = newStates.findIndex(
-        (state) => state.servoId === servoId
-      ); // Find joint by servoId
-
-      if (jointIndex !== -1) {
-        newStates[jointIndex].virtualSpeed = speed;
-
-        if (isConnected) {
-          try {
-            await scsServoSDK.writeWheelSpeed(servoId, speed); // Send speed command to the robot
-            newStates[jointIndex].realSpeed = speed; // Update realSpeed
-          } catch (error) {
-            console.error(
-              `Failed to update speed for joint with servoId ${servoId}:`,
-              error
-            );
-            newStates[jointIndex].realSpeed = "error"; // Set realSpeed to "error"
-          }
-        }
-
-        setJointStates(newStates);
-      }
-    },
-    [jointStates, isConnected]
   );
 
   // Update multiple joints' degrees simultaneously
@@ -300,57 +232,6 @@ export function useRobotControl(initialJointDetails: JointDetails[]) {
     [jointStates, isConnected, initialPositions]
   );
 
-  // Update multiple joints' speed simultaneously
-  const updateJointsSpeed: UpdateJointsSpeed = useCallback(
-    async (updates) => {
-      const newStates = [...jointStates];
-      const servoSpeeds: Record<number, number> = {};
-      const validUpdates: { servoId: number; speed: number }[] = [];
-
-      updates.forEach(({ servoId, speed }) => {
-        const jointIndex = newStates.findIndex(
-          (state) => state.servoId === servoId
-        );
-
-        if (jointIndex !== -1) {
-          newStates[jointIndex].virtualSpeed = speed;
-
-          if (isConnected) {
-            servoSpeeds[servoId] = speed;
-            validUpdates.push({ servoId, speed });
-          }
-        }
-      });
-
-      if (isConnected && Object.keys(servoSpeeds).length > 0) {
-        try {
-          await scsServoSDK.syncWriteWheelSpeed(servoSpeeds);
-          validUpdates.forEach(({ servoId, speed }) => {
-            const jointIndex = newStates.findIndex(
-              (state) => state.servoId === servoId
-            );
-            if (jointIndex !== -1) {
-              newStates[jointIndex].realSpeed = speed;
-            }
-          });
-        } catch (error) {
-          console.error("Failed to update multiple servo speeds:", error);
-          validUpdates.forEach(({ servoId }) => {
-            const jointIndex = newStates.findIndex(
-              (state) => state.servoId === servoId
-            );
-            if (jointIndex !== -1) {
-              newStates[jointIndex].realSpeed = "error";
-            }
-          });
-        }
-      }
-
-      setJointStates(newStates);
-    },
-    [jointStates, isConnected]
-  );
-
   return {
     isConnected,
     connectRobot,
@@ -358,8 +239,6 @@ export function useRobotControl(initialJointDetails: JointDetails[]) {
     jointStates,
     updateJointDegrees,
     updateJointsDegrees,
-    updateJointSpeed,
-    updateJointsSpeed, // New function
     setJointDetails,
   };
 }

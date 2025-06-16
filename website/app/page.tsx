@@ -7,49 +7,13 @@ import Link from "next/link";
 export default function Home() {
   const robots = [
     {
-      id: 1,
-      name: "so-arm100",
-      image: "/so-arm100.jpg",
-      playLink: "/play/so-arm100",
-      assembleLink:
-        "https://github.com/huggingface/lerobot/blob/main/examples/10_use_so100.md",
-    },
-    {
-      id: 2,
-      name: "bambot v0",
-      image: "/bambot_v0.jpg",
-      playLink: "/play/bambot-v0",
-      assembleLink: "https://github.com/timqian/bambot/tree/main/hardware",
-    },
-    {
-      id: 3,
-      name: "bambot base v0",
-      image: "/bambot_v0_base.png",
-      playLink: "/play/bambot-v0-base",
-      assembleLink: "https://github.com/timqian/bambot/tree/main/hardware",
-    },
-    {
       id: 0,
-      name: "sts3215 servo",
-      image: "/sts3215.png",
-      playLink: "/play/sts3215",
-      assembleLink: "",
-    },
-    // {
-    //   id: 3,
-    //   name: "bambot base v0",
-    //   image: "/bambot_v0.jpg",
-    //   playLink: "/play/bambot-base-v0",
-    //   assembleLink: "/assemble/bambot-base-v0",
-    // },
-    // Example: Add a 4th bot to test layout
-    // {
-    //   id: 4,
-    //   name: "Example Bot 4",
-    //   image: "/bambot_v0.jpg", // Use appropriate image
-    //   playLink: "/play/example-bot-4",
-    //   assembleLink: "/assemble/example-bot-4",
-    // },
+      name: "roarm_m3",
+      image: "/roarm_m3.jpg",
+      playLink: "/play/roarm_m3",
+      assembleLink:
+        "https://github.com/dudulrx/lerobot/blob/main/examples/12_use_roarm_m3.md",
+    },    
   ];
 
   return (
@@ -58,7 +22,7 @@ export default function Home() {
         <div className="text-center w-full">
           {" "}
           {/* Ensure text-center container takes full width */}
-          <h1 className="text-6xl mb-4 font-bold">BamBot</h1>
+          <h1 className="text-6xl mb-4 font-bold">roarm_m3</h1>
           <p className="text-2xl mb-8">Open source, low-cost AI robots 🤖</p>
           {/* Changed from grid to flex for flexible centering */}
           <div className="container mx-auto p-4 flex flex-wrap justify-center gap-8 relative z-10">
