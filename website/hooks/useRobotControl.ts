@@ -3,8 +3,7 @@
  */
 
 import { useState, useCallback, useEffect } from "react";
-import { scsServoSDK } from "feetech.js";
-import { servoPositionToAngle, degreesToServoPosition } from "../lib/utils"; // Import utility functions
+import { Roarm } from "roarm-sdk";
 // import { JointDetails } from "@/components/RobotLoader"; // <-- IMPORT JointDetails type
 type JointDetails = {
   name: string;
@@ -38,6 +37,14 @@ export type UpdateJointsDegrees = (
 export function useRobotControl(initialJointDetails: JointDetails[]) {
   const [isConnected, setIsConnected] = useState(false);
   const [jointDetails, setJointDetails] = useState(initialJointDetails);
+  const roarm = new Roarm({
+    roarm_type: 'roarm_m3',
+    baudrate: 115200,
+    host: null,            // 使用串口通信
+    timeout: 200,
+    debug: false,
+    thread_lock: true
+  });
 
   // Joint states
   const [jointStates, setJointStates] = useState<JointState[]>(
@@ -74,16 +81,31 @@ export function useRobotControl(initialJointDetails: JointDetails[]) {
   // Connect to the robot
   const connectRobot = useCallback(async () => {
     try {
-      // const port = new SerialPort({
-      //   path: '/dev/ttyACM0', 
-      //   baudRate: 115200,
-      // });
+      await roarm.connect();
       setIsConnected(true);
       console.log("Robot connected successfully.");
 
       const newStates = [...jointStates];
       const initialPos: number[] = [];
+      for (let i = 0; i < jointDetails.length; i++) {
+        try {
+            const angles = roarm.joints_angle_get()
+            initialPos.push(angles);
+            newStates[i].realDegrees = angles;
 
+            // Enable torque for revolute servos
+            await roarm.torque_set(1);
+          
+        } catch (error) {
+          console.error(`Failed to initialize joint ${jointDetails[i].servoId}:`, error);
+          initialPos.push(0);
+          if (jointDetails[i].jointType === "revolute") {
+            newStates[i].realDegrees = "error";
+          } else if (jointDetails[i].jointType === "continuous") {
+            newStates[i].realSpeed = "error";
+          }
+        }
+      }
       setInitialPositions(initialPos);
       setJointStates(newStates);
     } catch (error) {
@@ -96,10 +118,17 @@ export function useRobotControl(initialJointDetails: JointDetails[]) {
     try {
       // Disable torque for revolute servos and set wheel speed to 0 for continuous servos
       for (let i = 0; i < jointDetails.length; i++) {
-
+        try {
+          await roarm.torque_set(0);
+        } catch (error) {
+          console.error(
+            `Failed to reset joint ${jointDetails[i].servoId} during disconnect:`,
+            error
+          );
+        }
       }
 
-      await scsServoSDK.disconnect();
+      await roarm.disconnect();
       setIsConnected(false);
       console.log("Robot disconnected successfully.");
 
@@ -132,11 +161,7 @@ export function useRobotControl(initialJointDetails: JointDetails[]) {
             const relativeValue = (initialPositions[jointIndex] || 0) + value; // Calculate relative position
             // Check if relativeValue is within the valid range (0-360 degrees)
             if (relativeValue >= 0 && relativeValue <= 360) {
-              const servoPosition = degreesToServoPosition(relativeValue); // Use utility function
-              await scsServoSDK.writePosition(
-                servoId,
-                Math.round(servoPosition)
-              );
+             await roarm.joint_radian_ctrl(servoId,Math.round(relativeValue),0,0);
               newStates[jointIndex].realDegrees = relativeValue; // Update relative realDegrees
             } else {
               console.warn(
@@ -165,7 +190,7 @@ export function useRobotControl(initialJointDetails: JointDetails[]) {
   const updateJointsDegrees: UpdateJointsDegrees = useCallback(
     async (updates) => {
       const newStates = [...jointStates];
-      const servoPositions: Record<number, number> = {};
+      const angles: Record<number, number> = {};
       const validUpdates: {
         servoId: number;
         value: number;
@@ -186,8 +211,7 @@ export function useRobotControl(initialJointDetails: JointDetails[]) {
             const relativeValue = (initialPositions[jointIndex] || 0) + value; // Calculate relative position
             // Check if relativeValue is within the valid range (0-360 degrees)
             if (relativeValue >= 0 && relativeValue <= 360) {
-              const servoPosition = degreesToServoPosition(relativeValue); // Use utility function
-              servoPositions[servoId] = Math.round(servoPosition);
+              angles[servoId] = Math.round(relativeValue);
               validUpdates.push({ servoId, value, relativeValue }); // Store valid updates
             } else {
               console.warn(
@@ -200,10 +224,10 @@ export function useRobotControl(initialJointDetails: JointDetails[]) {
         }
       });
 
-      if (isConnected && Object.keys(servoPositions).length > 0) {
+      if (isConnected && Object.keys(angles).length > 0) {
         // Only write if there are valid positions and connected
         try {
-          await scsServoSDK.syncWritePositions(servoPositions); // Use syncWritePositions with only valid positions
+          await roarm.joints_radian_ctrl(angles); // Use syncWritePositions with only valid positions
           validUpdates.forEach(({ servoId, relativeValue }) => {
             // Update realDegrees only for successfully written joints
             const jointIndex = newStates.findIndex(

@@ -1,0 +1,13 @@
+{
+  "name": "roarm-sdk",
+  "version": "1.0.0",
+  "description": "Control waveshare roarm through browser",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "types": "./index.d.ts"
+}
