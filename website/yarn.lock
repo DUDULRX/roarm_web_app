@@ -1155,31 +1155,6 @@
   resolved "https://registry.npmmirror.com/@radix-ui/rect/-/rect-1.1.1.tgz#78244efe12930c56fd255d7923865857c41ac8cb"
   integrity sha512-HPwpGIzkl28mWyZqG52jiqDJ12waP11Pa1lGoiyUkIEuMLBP0oeK/C89esbXrxsky5we7dfd8U58nm0SgAWpVw==
 
-"@rclnodejs/ref-array-di@^1.2.2":
-  version "1.2.2"
-  resolved "https://registry.npmmirror.com/@rclnodejs/ref-array-di/-/ref-array-di-1.2.2.tgz#24f8c503333a9ea6de96857847eeec56d0946e71"
-  integrity sha512-BHslJ1wmmaiPQ2rPZrO9Du9Cd/eQjZ+N5T84poFZk9JFJkYatbtXALbjWTgoHWpl6Cvm415NfwsGc2xkjzFPxw==
-  dependencies:
-    array-index "^1.0.0"
-    debug "^4.3.1"
-
-"@rclnodejs/ref-napi@^4.0.0":
-  version "4.0.0"
-  resolved "https://registry.npmmirror.com/@rclnodejs/ref-napi/-/ref-napi-4.0.0.tgz#e4db8ec450066eac2868f8013e788a5bc55bf17d"
-  integrity sha512-gj5iSZVNsxKwm8jaLe75B1xyxU95bes1iMbtJzS8lG5D2mMRoeXAmlnS+jPKMyQDIbTXcucaD7aHIILBQ+fudw==
-  dependencies:
-    debug "^4.3.1"
-    get-symbol-from-current-process-h "^1.0.2"
-    node-addon-api "^4.2.0"
-    node-gyp-build "^4.3.0"
-
-"@rclnodejs/ref-struct-di@^1.1.1":
-  version "1.1.1"
-  resolved "https://registry.npmmirror.com/@rclnodejs/ref-struct-di/-/ref-struct-di-1.1.1.tgz#94b03bc17c3f19ba10a30acc32d6e9c904f57570"
-  integrity sha512-UqFrk6tXEo3d6byHLUqsfJzONDZDUDU/g8fpkj2Xxy8CF0r7QRQ3wGyQxBS+GFzf7yByWBSddPhOj1EsGB0R3Q==
-  dependencies:
-    debug "^4.3.1"
-
 "@react-three/drei@^10.0.6":
   version "10.2.0"
   resolved "https://registry.npmmirror.com/@react-three/drei/-/drei-10.2.0.tgz#b86706f280c81ca43dde5847d5741d809e4d25e7"
@@ -3645,25 +3620,6 @@ raw-body@2.4.1:
     http-errors "1.7.3"
     iconv-lite "0.4.24"
     unpipe "1.0.0"
-
-rclnodejs@^1.2.0:
-  version "1.2.0"
-  resolved "https://registry.npmmirror.com/rclnodejs/-/rclnodejs-1.2.0.tgz#dc45c86e5be990fb85fd0d05127563851e79621b"
-  integrity sha512-ntAuelt9HHWjDyXapGlmxZSkBTCkjP5Z/0x0yCDIxFyvBIbd4DYPbRJyo5LtmvvE0AUztDrwOECkNvl1sEB2MQ==
-  dependencies:
-    "@rclnodejs/ref-array-di" "^1.2.2"
-    "@rclnodejs/ref-napi" "^4.0.0"
-    "@rclnodejs/ref-struct-di" "^1.1.1"
-    bindings "^1.5.0"
-    compare-versions "^6.1.1"
-    debug "^4.4.0"
-    dot "^1.1.3"
-    fs-extra "^11.2.0"
-    is-close "^1.3.3"
-    json-bigint "^1.0.0"
-    node-addon-api "^8.3.1"
-    terser "^5.39.0"
-    walk "^2.3.15"
 
 react-day-picker@8.10.1:
   version "8.10.1"
