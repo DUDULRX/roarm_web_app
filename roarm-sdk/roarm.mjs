@@ -47,10 +47,9 @@ export class Roarm extends CommandGenerator {
     }
   }
 
-
   async _mesg(genre, ...args) {
     // const real_command = super._mesg(genre, ...args);
-    const real_command = CommandGenerator.prototype._mesg.call(this, genre, ...args);
+    console.log(genre, ...args)
     return this._res(real_command, genre);
   }
 

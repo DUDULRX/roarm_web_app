@@ -155,17 +155,38 @@ export class CommandGenerator extends DataProcessor {
 
   pose_get() {
     const value = this.feedback_get();
-    while (value.length < 20) value.push(0);
+
+    if (!(value instanceof Uint8Array)) {
+      throw new Error('feedback_get() did not return a Uint8Array');
+    }
+
+    const padded = new Uint8Array(20);
+    padded.set(value.slice(0, Math.min(value.length, 20)));
+
     const switchDict = {
-      roarm_m2: [...value.slice(0, 3), value[6]],
-      roarm_m3: [...value.slice(0, 4), value[8], value[9]],
+      roarm_m2: [
+        ...Uint8Array.prototype.slice.call(padded, 0, 3),
+        padded[6]
+      ],
+      roarm_m3: [
+        ...Uint8Array.prototype.slice.call(padded, 0, 4),
+        padded[8],
+        padded[9]
+      ],
     };
+
     const poses = switchDict[this.type];
-    poses.splice(3).forEach((v, i) => {
-      poses[3 + i] = (v * 180) / Math.PI;
-    });
+    if (!poses) {
+      throw new Error(`Unsupported robot type: ${this.type}`);
+    }
+
+    for (let i = 3; i < poses.length; i++) {
+      poses[i] = (poses[i] * 180) / Math.PI;
+    }
+
     return poses;
   }
+
 
   wifi_on_boot(wifi_cmd) {
     this.calibrationParameters({ roarm_type: this.type, wifi_cmd });
