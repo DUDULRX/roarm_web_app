@@ -37,14 +37,7 @@ export type UpdateJointsDegrees = (
 export function useRobotControl(initialJointDetails: JointDetails[]) {
   const [isConnected, setIsConnected] = useState(false);
   const [jointDetails, setJointDetails] = useState(initialJointDetails);
-  const roarm = new Roarm({
-    roarm_type: 'roarm_m3',
-    baudrate: 115200,
-    host: null,            // 使用串口通信
-    timeout: 200,
-    debug: false,
-    thread_lock: true
-  });
+  const roarm = new Roarm({ roarm_type: "roarm_m3" });
 
   // Joint states
   const [jointStates, setJointStates] = useState<JointState[]>(

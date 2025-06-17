@@ -116,7 +116,6 @@ export function RevoluteJointsTable({
 
           if (increaseKey && currentPressedKeys.has(increaseKey)) {
             let newValue = currentDegrees + (isReverse ? -KEY_UPDATE_STEP_DEGREES : KEY_UPDATE_STEP_DEGREES);
-            console.log("1",newValue, currentDegrees, joint.servoId);
             const lowerLimit = radiansToDegrees(joint.limit?.lower ?? -Infinity);
             const upperLimit = radiansToDegrees(joint.limit?.upper ?? Infinity);
             newValue = Math.max(lowerLimit, Math.min(upperLimit, newValue));

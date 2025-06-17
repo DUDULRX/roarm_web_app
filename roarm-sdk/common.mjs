@@ -1,6 +1,4 @@
 // base-controller.mjs
-import { SerialPort } from 'serialport';
-
 const JsonCmd = {
   ECHO_SET: 605,
   MIDDLE_SET: 502,

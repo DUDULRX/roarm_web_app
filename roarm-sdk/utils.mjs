@@ -137,7 +137,7 @@ export function calibrationParameters(params) {
   }
 }
 
-DEFAULT_BAUDRATE = 115200;
+let DEFAULT_BAUDRATE = 115200;
 
 export class PortHandler {
   constructor() {

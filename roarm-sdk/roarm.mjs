@@ -2,7 +2,7 @@ import { CommandGenerator } from './generate.mjs';
 import { write, read, JsonCmd } from './common.mjs';
 import { calibrationParameters, PortHandler } from './utils.mjs';
 import fetch from 'node-fetch';
-// import fs from 'fs/promises';
+// // import fs from 'fs/promises';
 
 export class Roarm extends CommandGenerator {
   constructor({
@@ -28,22 +28,25 @@ export class Roarm extends CommandGenerator {
   }
 
   async connect() {
-    // if (!this.host && this.port == null) {
-    //   this.portHandler = new PortHandler();
-    //   this.portHandler.setBaudRate(this.baudrate);
-    // }
+    if (this.host) {
+      console.log(`Connecting via host: ${this.host}`);
+      return;
+    }
 
-    // if (!this.portHandler) throw new Error('PortHandler not initialized');
+    this.portHandler = new PortHandler();
+    this.portHandler.setBaudRate(this.baudrate);
 
     const granted = await this.portHandler.requestPort();
     if (!granted) {
       throw new Error('Serial port access denied');
     }
+
     const opened = await this.portHandler.openPort();
     if (!opened) {
       throw new Error('Failed to open serial port');
     }
   }
+
 
   async _mesg(genre, ...args) {
     const real_command = super._mesg(genre, ...args);
@@ -105,84 +108,6 @@ export class Roarm extends CommandGenerator {
       await new Promise(r => setTimeout(r, (duration / (2 * steps)) * 1000));
     }
     return 1;
-  }
-
-  listen_for_input() {
-    console.log('Call roarm.stop_flag = true manually to stop data collection.');
-  }
-
-  async drag_teach_start(filename) {
-    await this.torque_set(0);
-    const data = [];
-    console.log('Starting data collection.');
-    this.stop_flag = false;
-    this.listen_for_input();
-
-    while (!this.stop_flag) {
-      const radians = await this.joints_radian_get();
-      data.push({
-        timestamped: Date.now() / 1000,
-        radians,
-      });
-      await new Promise(r => setTimeout(r, 100));
-    }
-
-    try {
-      // await fs.writeFile(filename, JSON.stringify(data, null, 4), 'utf8');
-      console.log(`Data saved. Total ${data.length} records.`);
-    } catch (e) {
-      console.error('Error saving data:', e);
-    }
-  }
-
-  async drag_teach_replay(filename) {
-    let data;
-    try {
-      // const content = await fs.readFile(filename, 'utf8');
-      data = JSON.parse(content);
-    } catch (e) {
-      console.error('Error reading file:', e);
-      return;
-    }
-
-    if (!Array.isArray(data) || data.length < 2) {
-      console.error('Not enough data to replay.');
-      return;
-    }
-
-    const switch_dict = {
-      roarm_m2: [0, 0, 0, 0],
-      roarm_m3: [0, 0, 0, 0, 0, 0],
-    };
-
-    let prev_speed = switch_dict[this.type] || [];
-
-    for (let i = 1; i < data.length; i++) {
-      const r1 = data[i - 1];
-      const r2 = data[i];
-      const dt = r2.timestamped - r1.timestamped;
-      if (dt <= 0) continue;
-
-      const diff = r2.radians.map((r, idx) => r - r1.radians[idx]);
-      const vel = diff.map(d => d / dt);
-      const speed = vel.map(v => Math.abs(Math.floor((v * 2048) / Math.PI)));
-      const acc = speed.map((s, idx) => Math.abs(Math.floor((s - (prev_speed[idx] || 0)) / (100 * dt))));
-
-      for (let joint = 0; joint < prev_speed.length; joint++) {
-        if (speed[joint] !== 0) {
-          await this.joint_radian_ctrl({
-            joint: joint + 1,
-            radian: r2.radians[joint],
-            speed: speed[joint],
-            acc: acc[joint],
-          });
-          await new Promise(r => setTimeout(r, dt * 1000));
-        }
-      }
-      prev_speed = speed;
-    }
-
-    console.log(`Replayed ${data.length} steps from ${filename}.`);
   }
 
   async disconnect() {

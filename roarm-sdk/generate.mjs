@@ -8,7 +8,7 @@ export class CommandGenerator extends DataProcessor {
     super();
     this.type = roarm_type;
     this.debug = debug;
-    setupLogging(this.debug);
+    // setupLogging(this.debug);
     this.log = console; 
     this.calibrationParameters = calibrationParameters;
   }
