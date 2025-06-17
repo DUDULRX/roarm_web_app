@@ -93,6 +93,15 @@ async connect() {
         }
       } else {
         try {
+          if (!this.portHandler || !this.portHandler.isOpen) {
+            console.warn('[RECONNECT] PortHandler is null or closed. Trying to reconnect...');
+            try {
+              await this.connect();
+            } catch (e) {
+              console.error('Reconnect failed:', e);
+              return -1;
+            }
+          }
           console.log('serialPort:', this.portHandler);
           console.log('this.portHandler.isOpen:', this.portHandler?.isOpen);
           await write(real_command, null, this.portHandler, null);
