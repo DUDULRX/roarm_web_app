@@ -395,31 +395,54 @@ async function write(command, method = null, serialPort = null, sock = null) {
         logCommand += i.toString(16) + ' ';
       }
     }
-    // console.debug('_write:', logCommand);
     if (sock) sock.write(command);
   } else {
     if (!serialPort) throw new Error('serialPort required for non-http write');
-    if (serialPort.readableLength > 0) {
-      serialPort.read(serialPort.readableLength);
-    }
+
     let commandLog = '';
     for (const i of command) {
       if (typeof i === 'string') {
         commandLog += i.slice(2) + ' ';
       } else {
-        commandLog += i.toString(16) + ' ';
+        commandLog += i.toString(16).padStart(2, '0') + ' ';
       }
     }
     console.debug('_write:', commandLog);
-    await serialPort.write(command);
-    await serialPort.drain();
+
+    if (typeof serialPort.write === 'function') {
+      await serialPort.write(command);
+      if (typeof serialPort.drain === 'function') {
+        await serialPort.drain();
+      }
+    } else if (typeof serialPort.writePort === 'function') {
+      const result = await serialPort.writePort(command);
+      if (result !== command.length) {
+        throw new Error('writePort failed or incomplete write');
+      }
+    } else {
+      throw new Error('Unsupported serialPort interface');
+    }
   }
 }
 
 async function read(genre, serialPort, baseController, type) {
   if (genre !== JsonCmd.FEEDBACK_GET) {
-    const requestData = JSON.stringify({ T: 105 }) + '\n';
-    await serialPort.write(requestData);
+    const requestDataStr = JSON.stringify({ T: 105 }) + '\n';
+
+    if (!serialPort) throw new Error('serialPort required for read');
+
+    if (typeof serialPort.write === 'function') {
+      await serialPort.write(requestDataStr);
+    } else if (typeof serialPort.writePort === 'function') {
+      const encoder = new TextEncoder();
+      const requestData = encoder.encode(requestDataStr);
+      const written = await serialPort.writePort(requestData);
+      if (written !== requestData.length) {
+        throw new Error('writePort failed or incomplete write');
+      }
+    } else {
+      throw new Error('Unsupported serialPort interface');
+    }
   }
 
   if (!baseController) {
@@ -433,6 +456,7 @@ async function read(genre, serialPort, baseController, type) {
   }
   return null;
 }
+
 
 export {
   JsonCmd,
