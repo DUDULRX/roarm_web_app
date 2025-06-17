@@ -21,7 +21,7 @@ const JsonCmd = {
   WIFI_STOP: 408,
 };
 
-export class ReadLine {
+class ReadLine {
   constructor(portHandler, timeout = 1000) {
     this.portHandler = portHandler;         // PortHandler 实例
     this.buf = "";                           // 字符串缓冲区
