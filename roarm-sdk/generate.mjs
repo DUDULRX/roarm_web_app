@@ -63,12 +63,15 @@ export class CommandGenerator extends DataProcessor {
 
   joints_radian_get() {
     const value = this.feedback_get();
+
     const switchDict = {
-      roarm_m2: value.slice(3, 7),
-      roarm_m3: value.slice(4, 10),
+      roarm_m2: Uint8Array.prototype.slice.call(value, 3, 7),
+      roarm_m3: Uint8Array.prototype.slice.call(value, 4, 10),
     };
+
     return switchDict[this.type];
   }
+
 
   joint_angle_ctrl(joint, angle, speed, acc) {
     this.calibrationParameters({ roarm_type: this.type, joint, angle, speed, acc });
@@ -82,11 +85,21 @@ export class CommandGenerator extends DataProcessor {
 
   joints_angle_get() {
     const value = this.feedback_get();
+
+    if (!(value instanceof Uint8Array)) {
+      throw new Error('feedback_get() did not return a Uint8Array or Buffer');
+    }
+
     const switchDict = {
-      roarm_m2: value.slice(3, 7),
-      roarm_m3: value.slice(4, 10),
+      roarm_m2: Uint8Array.prototype.slice.call(value, 3, 7),
+      roarm_m3: Uint8Array.prototype.slice.call(value, 4, 10),
     };
+
     const radians = switchDict[this.type];
+    if (!radians) {
+      throw new Error(`Unsupported roarm_type: ${this.type}`);
+    }
+
     return radians.map(radian => (radian * 180) / Math.PI);
   }
 
