@@ -181,71 +181,37 @@ export function useRobotControl(initialJointDetails: JointDetails[]) {
     [jointStates, isConnected, initialPositions]
   );
 
-  // Update multiple joints' degrees simultaneously
   const updateJointsDegrees: UpdateJointsDegrees = useCallback(
-  async (updates) => {
+    async (updates) => {
       const newStates = [...jointStates];
       const angles: Record<number, number> = {};
-      const validUpdates: {
-        servoId: number;
-        value: number;
-        relativeValue: number;
-      }[] = [];
-    console.log('updates:', updates);
 
       updates.forEach(({ servoId, value }) => {
         const jointIndex = newStates.findIndex(
           (state) => state.servoId === servoId
-        ); // Find joint by servoId
-
+        );
         if (jointIndex !== -1) {
-          // Update virtual degrees regardless of connection status
           newStates[jointIndex].virtualDegrees = value;
-
-          // Only calculate and check relative value if connected
-          if (isConnected) {
-            const relativeValue = (initialPositions[jointIndex] || 0) + value; // Calculate relative position
-            // Check if relativeValue is within the valid range (0-360 degrees)
-            // if (relativeValue >= 0 && relativeValue <= 360) {
-              console.log(servoId,relativeValue);
-              angles[servoId] = Math.round(relativeValue);
-              validUpdates.push({ servoId, value, relativeValue }); // Store valid updates
-            // } else {
-            //   console.warn(
-            //     `Relative value ${relativeValue} for servo ${servoId} is out of range (0-360). Skipping update in sync write.`
-            //   );
-              // Optionally update realDegrees for the skipped joint here or after the sync write
-              // newStates[jointIndex].realDegrees = relativeValue; // Or keep the previous value
-            // }
-          }
         }
       });
 
-      if (isConnected && Object.keys(angles).length > 0) {
-        // Only write if there are valid positions and connected
+      if (isConnected) {
+        for (let servoId = 1; servoId <= 6; servoId++) {
+          const jointIndex = newStates.findIndex(
+            (state) => state.servoId === servoId
+          );
+          if (jointIndex !== -1) {
+            const base = initialPositions[jointIndex] || 0;
+            const relativeValue = base + (newStates[jointIndex].virtualDegrees || 0);
+            angles[servoId] = Math.round(relativeValue);
+            newStates[jointIndex].realDegrees = relativeValue;
+          }
+        }
+
         try {
-          console.log(angles);
-          await roarm.joints_angle_ctrl(angles,0,10); // Use syncWritePositions with only valid positions
-          validUpdates.forEach(({ servoId, relativeValue }) => {
-            // Update realDegrees only for successfully written joints
-            const jointIndex = newStates.findIndex(
-              (state) => state.servoId === servoId
-            );
-            if (jointIndex !== -1) {
-              newStates[jointIndex].realDegrees = relativeValue; // Update realDegrees
-            }
-          });
+          await roarm.joints_angle_ctrl(angles, 0, 10);
         } catch (error) {
-          console.error("Failed to update multiple servo degrees:", error);
-          // Handle potential errors, maybe set corresponding realDegrees to 'error'
-          validUpdates.forEach(({ servoId }) => {
-            const jointIndex = newStates.findIndex(
-              (state) => state.servoId === servoId
-            );
-            if (jointIndex !== -1) {
-              // newStates[jointIndex].realDegrees = 'error'; // Example error handling
-            }
-          });
+          console.error(error);
         }
       }
 
