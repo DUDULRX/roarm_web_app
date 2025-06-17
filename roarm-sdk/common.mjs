@@ -411,7 +411,6 @@ async function write(command, method = null, serialPort = null, sock = null) {
     }
     if (sock) sock.write(command);
   } else {
-    console.log('serialPort:', serialPort);
 
     if (!serialPort) throw new Error('serialPort required for non-http write');
 

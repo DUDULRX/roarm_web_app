@@ -69,7 +69,6 @@ async connect() {
 
   async _mesg(genre, ...args) {
     const real_command = super._mesg(genre, ...args);
-    console.log(real_command);
     return this._res(real_command, genre);
   }
 
@@ -93,8 +92,6 @@ async connect() {
         }
       } else {
         try {
-          console.log('serialPort:', this.portHandler);
-          console.log('this.portHandler.isOpen:', this.portHandler?.isOpen);
           await write(real_command, null, this.portHandler, null);
           if (genre !== JsonCmd.FEEDBACK_GET) {
             data = real_command;
