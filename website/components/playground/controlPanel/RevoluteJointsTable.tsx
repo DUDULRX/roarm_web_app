@@ -221,6 +221,9 @@ export function RevoluteJointsTable({
       } else if (updates.length > 0) {
         updateJointsDegreesRef.current(updates); // 单独关节更新
       }
+      console.log(ikUpdates);
+      console.log(updates);
+
     };
 
     if (pressedKeys.size > 0) {
