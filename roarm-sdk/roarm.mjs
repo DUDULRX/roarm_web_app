@@ -116,8 +116,20 @@ async connect() {
   }
 
   async disconnect() {
-    if (this.portHandler && this.portHandler.isOpen) {
+    if (!this.portHandler || !this.portHandler.isOpen) {
+      console.log("Already disconnected.");
+      return true;
+    }
+    try {
       await this.portHandler.closePort();
+      this.portHandler = null;
+      console.log("Disconnected from serial port.");
+      return true;
+    } catch (err) {
+      console.error("Error during disconnection:", err);
+      // Attempt to nullify handlers even if close fails
+      this.portHandler = null;
+      throw new Error(`Disconnection failed: ${err.message}`);
     }
   }
 }
