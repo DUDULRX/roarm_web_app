@@ -86,8 +86,15 @@ export function useRobotControl(initialJointDetails: JointDetails[]) {
             const angles = roarm.joints_angle_get()
             console.log(angles)
             initialPos.push(angles);
-            newStates[i].realDegrees = angles;
-
+            // newStates[i].realDegrees = angles;
+            const newStates = [...jointStates];
+            for (let i = 0; i < newStates.length; i++) {
+              if (typeof angles[i] === 'number') {
+                newStates[i].realDegrees = angles[i];
+              } else {
+                newStates[i].realDegrees = "N/A"; 
+              }
+            }
             // Enable torque for revolute servos
             await roarm.torque_set(1);
           
@@ -96,8 +103,6 @@ export function useRobotControl(initialJointDetails: JointDetails[]) {
           initialPos.push(0);
           if (jointDetails[i].jointType === "revolute") {
             newStates[i].realDegrees = "error";
-          } else if (jointDetails[i].jointType === "continuous") {
-            newStates[i].realSpeed = "error";
           }
         }
       }
