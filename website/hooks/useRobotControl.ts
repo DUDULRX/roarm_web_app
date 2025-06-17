@@ -84,7 +84,7 @@ export function useRobotControl(initialJointDetails: JointDetails[]) {
       for (let i = 0; i < jointDetails.length; i++) {
         try {
             const angles = roarm.joints_angle_get()
-            console.log(angles)
+            console.log("angles",angles)
             initialPos.push(angles);
             // newStates[i].realDegrees = angles;
             const newStates = [...jointStates];
