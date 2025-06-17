@@ -154,17 +154,17 @@ export function useRobotControl(initialJointDetails: JointDetails[]) {
           try {
             const relativeValue = (initialPositions[jointIndex] || 0) + value; // Calculate relative position
             // Check if relativeValue is within the valid range (0-360 degrees)
-            if (relativeValue >= 0 && relativeValue <= 360) {
+            // if (relativeValue >= 0 && relativeValue <= 360) {
               console.log(servoId,Math.round(relativeValue))
               await roarm.joint_angle_ctrl(servoId,Math.round(relativeValue),0,0);
               newStates[jointIndex].realDegrees = relativeValue; // Update relative realDegrees
-            } else {
-              console.warn(
-                `Relative value ${relativeValue} for servo ${servoId} is out of range (0-360). Skipping update.`
-              );
+            // } else {
+            //   console.warn(
+            //     `Relative value ${relativeValue} for servo ${servoId} is out of range (0-360). Skipping update.`
+            //   );
               // Optionally update realDegrees to reflect the attempted value or keep it as is
               // newStates[jointIndex].realDegrees = relativeValue; // Or keep the previous value
-            }
+            // }
           } catch (error) {
             console.error(
               `Failed to update servo degrees for joint with servoId ${servoId}:`,
