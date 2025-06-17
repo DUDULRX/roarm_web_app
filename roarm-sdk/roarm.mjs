@@ -98,6 +98,8 @@ async connect() {
         }
       } else {
         try {
+          console.log('serialPort:', this.portHandler);
+          console.log('this.portHandler.isOpen:', this.portHandler?.isOpen);
           await write(real_command, null, this.portHandler, null);
           if (genre !== JsonCmd.FEEDBACK_GET) {
             data = real_command;
