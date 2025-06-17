@@ -206,6 +206,7 @@ export function useRobotControl(initialJointDetails: JointDetails[]) {
             const relativeValue = (initialPositions[jointIndex] || 0) + value; // Calculate relative position
             // Check if relativeValue is within the valid range (0-360 degrees)
             // if (relativeValue >= 0 && relativeValue <= 360) {
+              console.log(servoId,relativeValue);
               angles[servoId] = Math.round(relativeValue);
               validUpdates.push({ servoId, value, relativeValue }); // Store valid updates
             // } else {
