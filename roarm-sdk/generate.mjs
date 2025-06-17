@@ -85,7 +85,7 @@ export class CommandGenerator extends DataProcessor {
 
   joints_angle_get() {
     const value = this.feedback_get();
-    console.log(value);
+    console.log("data",value);
 
     if (!(value instanceof Uint8Array)) {
       throw new Error('feedback_get() did not return a Uint8Array or Buffer');
@@ -97,9 +97,12 @@ export class CommandGenerator extends DataProcessor {
     };
 
     const radians = switchDict[this.type];
+    console.log("radian",radians);
+
     if (!radians) {
       throw new Error(`Unsupported roarm_type: ${this.type}`);
     }
+    console.log("radian",radians.map(radian => (radian * 180) / Math.PI));
 
     return radians.map(radian => (radian * 180) / Math.PI);
   }
