@@ -21,77 +21,77 @@ const JsonCmd = {
   WIFI_STOP: 408,
 };
 
-class ReadLine {
-  constructor(serialPort, timeout = 100) {
-    this.buf = "";                     
-    this.serialPort = serialPort;
-    this.timeout = timeout;           
+export class ReadLine {
+  constructor(portHandler, timeout = 1000) {
+    this.portHandler = portHandler;         // PortHandler 实例
+    this.buf = "";                           // 字符串缓冲区
     this.frameStart = "{";
     this.frameEnd = "}\r\n";
     this.maxFrameLength = 512;
+    this.timeout = timeout;                  // ms
+    this.decoder = new TextDecoder();        // UTF-8解码器
   }
 
   async readline() {
-    if (!this.serialPort?.readable) {
-      throw new Error('Serial port not readable.');
+    const startTime = performance.now();
+    const reader = this.portHandler.reader;
+
+    if (!reader) {
+      throw new Error('PortHandler reader not initialized.');
     }
 
-    const textDecoder = new TextDecoderStream();
-    this.serialPort.readable.pipeTo(textDecoder.writable);
-    const reader = textDecoder.readable.getReader();
-
-    const startTime = performance.now();
-
     while (true) {
+      const elapsed = performance.now() - startTime;
+      if (elapsed > this.timeout) {
+        console.warn("ReadLine timeout.");
+        return null;
+      }
+
       try {
         const { value, done } = await reader.read();
 
         if (done) {
-          console.warn("Serial stream closed.");
-          break;
+          console.warn("Serial reader closed.");
+          return null;
         }
 
-        if (value) {
-          this.buf += value;
+        if (value && value.length > 0) {
+          // 解码成字符串并加入缓冲区
+          this.buf += this.decoder.decode(value, { stream: true });
 
+          // 限制缓冲区最大长度
           if (this.buf.length > this.maxFrameLength) {
-            console.warn('Buffer too long, clearing buffer');
+            console.warn("Buffer overflow, resetting.");
             this.buf = "";
             continue;
           }
 
-          const endIndex = this.buf.lastIndexOf(this.frameEnd);
-          if (endIndex >= 0) {
-            const startIndex = this.buf.lastIndexOf(this.frameStart, endIndex);
-            if (startIndex >= 0 && startIndex < endIndex) {
-              const frame = this.buf.slice(startIndex, endIndex + this.frameEnd.length);
-              this.buf = this.buf.slice(endIndex + this.frameEnd.length);
-              reader.releaseLock();  // 释放 reader
+          // 查找帧
+          const endIdx = this.buf.indexOf(this.frameEnd);
+          if (endIdx !== -1) {
+            const startIdx = this.buf.lastIndexOf(this.frameStart, endIdx);
+            if (startIdx !== -1 && startIdx < endIdx) {
+              const frame = this.buf.slice(startIdx, endIdx + this.frameEnd.length);
+              this.buf = this.buf.slice(endIdx + this.frameEnd.length);
               return frame;
             }
           }
+        } else {
+          // 无数据小等待
+          await new Promise(resolve => setTimeout(resolve, 10));
         }
 
-        const elapsed = performance.now() - startTime;
-        if (elapsed > this.timeout * 1000) {
-          console.warn("Read timeout.");
-          break;
-        }
       } catch (err) {
         console.error("ReadLine error:", err);
-        break;
+        return null;
       }
     }
-
-    reader.releaseLock();
-    return null;
   }
 
   clearBuffer() {
     this.buf = "";
   }
 }
-
 
 class BaseController {
   constructor(roarmType, serialPort) {
