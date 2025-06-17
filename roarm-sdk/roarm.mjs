@@ -22,7 +22,6 @@ export class Roarm extends CommandGenerator {
     this.baudrate = baudrate;
     this.timeout = timeout;
     this.stop_flag = false;
-    this.baseController = null;
   }
 
 async connect() {
@@ -51,10 +50,6 @@ async connect() {
       await this.portHandler.closePort().catch(console.error); // Attempt cleanup
       this.portHandler = null;
       throw new Error(`Failed to open port at baudrate ${this.baudRate}.`);
-    }
-    if (!this.baseController && this.portHandler) {
-      const { BaseController } = await import('./utils.mjs');
-      this.baseController = new BaseController(this.type, this.portHandler);
     }
 
   }catch (err) {
@@ -104,7 +99,7 @@ async connect() {
           if (genre !== JsonCmd.FEEDBACK_GET) {
             data = real_command;
           } else {
-            data = await read(genre, this.portHandler, this.baseController, this.type);
+            data = await read(genre, this.portHandler, this.type);
           }
         } catch (e) {
           console.warn('Serial read/write error:', e);

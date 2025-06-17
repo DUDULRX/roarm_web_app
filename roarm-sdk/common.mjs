@@ -432,7 +432,7 @@ async function write(command, method = null, serialPort = null, sock = null) {
   }
 }
 
-async function read(genre, serialPort, baseController, type) {
+async function read(genre, serialPort, type) {
   if (genre !== JsonCmd.FEEDBACK_GET) {
     const requestDataStr = JSON.stringify({ T: 105 }) + '\n';
 
@@ -446,9 +446,8 @@ async function read(genre, serialPort, baseController, type) {
       }
   }
 
-  if (!baseController) {
-    baseController = new BaseController(type, serialPort);
-  }
+
+  const baseController = new BaseController(type, serialPort);
 
   const data = await baseController.feedbackData();
   if (data) {
