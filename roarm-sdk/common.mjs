@@ -334,6 +334,8 @@ class DataProcessor {
   }
 
   _mesg(genre, ...args) {
+    console.log(genre);
+    console.log(args);
     const commandData = this.processDataCommand(args);
     const switchDict = {
       [JsonCmd.ECHO_SET]: handleEchoOrTorqueSet,
@@ -358,6 +360,7 @@ class DataProcessor {
     if (commandData.length > 0 && genre in switchDict) {
       command = switchDict[genre](this.type, command, commandData);
     }
+    console.log(command);
     return this.flatten(command);
   }
 
@@ -420,7 +423,9 @@ async function write(command, method = null, serialPort = null, sock = null) {
       }
     }
     console.debug('_write:', command);
+    // const result = await serialPort.writePort(command);
     const result = await serialPort.writePort(command);
+
     if (result !== command.length) {
       throw new Error('writePort failed or incomplete write');
     }
