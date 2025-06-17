@@ -184,7 +184,6 @@ export function useRobotControl(initialJointDetails: JointDetails[]) {
   const updateJointsDegrees: UpdateJointsDegrees = useCallback(
     async (updates) => {
       const newStates = [...jointStates];
-      const angles: Record<number, number> = {};
 
       updates.forEach(({ servoId, value }) => {
         const jointIndex = newStates.findIndex(
@@ -196,22 +195,29 @@ export function useRobotControl(initialJointDetails: JointDetails[]) {
       });
 
       if (isConnected) {
+        const anglesArray: number[] = [];
+
         for (let servoId = 1; servoId <= 6; servoId++) {
           const jointIndex = newStates.findIndex(
             (state) => state.servoId === servoId
           );
           if (jointIndex !== -1) {
             const base = initialPositions[jointIndex] || 0;
-            const relativeValue = base + (newStates[jointIndex].virtualDegrees || 0);
-            angles[servoId] = Math.round(relativeValue);
+            const virtual = newStates[jointIndex].virtualDegrees || 0;
+            const relativeValue = base + virtual;
+
+            anglesArray.push(Math.round(relativeValue));
             newStates[jointIndex].realDegrees = relativeValue;
+          } else {
+            anglesArray.push(0);
           }
         }
 
         try {
-          await roarm.joints_angle_ctrl(angles, 0, 10);
+          console.log("写入角度数组:", anglesArray); // 形如 [12, 45, 88, 0, 50, 90]
+          await roarm.joints_angle_ctrl(anglesArray, 0, 10);
         } catch (error) {
-          console.error(error);
+          console.error("批量更新舵机角度失败:", error);
         }
       }
 
