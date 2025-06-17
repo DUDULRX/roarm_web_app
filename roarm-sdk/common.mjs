@@ -321,7 +321,7 @@ class DataProcessor {
     this.type = type;
   }
 
-  mesg(genre, ...args) {
+  _mesg(genre, ...args) {
     const commandData = this.processDataCommand(args);
     const switchDict = {
       [JsonCmd.ECHO_SET]: handleEchoOrTorqueSet,
