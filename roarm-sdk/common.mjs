@@ -22,50 +22,62 @@ const JsonCmd = {
 };
 
 class ReadLine {
-  constructor(serialPort) {
+  constructor(serialPort, timeout = 100) {
     this.buf = Buffer.alloc(0);
-    this.serialPort = serialPort;
-    this.timeout = 100; // ms
+    this.serialPort = serialPort;  
+    this.timeout = timeout;          
     this.frameStart = Buffer.from('{');
     this.frameEnd = Buffer.from('}\r\n');
     this.maxFrameLength = 512;
   }
 
   async readline() {
-    return new Promise((resolve, reject) => {
-      const timeoutHandle = setTimeout(() => {
-        this.serialPort.removeListener('data', onData);
-        resolve(null);
-      }, this.timeout);
+    if (!this.serialPort?.reader) {
+      throw new Error('Serial port reader not available.');
+    }
 
-      const onData = (data) => {
-        this.buf = Buffer.concat([this.buf, data]);
-        const endIndex = this.buf.lastIndexOf(this.frameEnd);
-        if (endIndex >= 0) {
-          const startIndex = this.buf.lastIndexOf(this.frameStart, endIndex);
-          if (startIndex >= 0 && startIndex < endIndex) {
-            const frame = this.buf.slice(startIndex, endIndex + this.frameEnd.length);
-            this.buf = this.buf.slice(endIndex + this.frameEnd.length);
-            clearTimeout(timeoutHandle);
-            this.serialPort.removeListener('data', onData);
-            resolve(frame.toString());
+    this.buf = Buffer.alloc(0);
+    const start = performance.now();
+
+    while (performance.now() - start < this.timeout) {
+      try {
+        const { value, done } = await this.serialPort.reader.read();
+
+        if (done) {
+          console.warn('Stream closed');
+          break;
+        }
+
+        if (value?.length > 0) {
+          this.buf = Buffer.concat([this.buf, Buffer.from(value)]);
+
+          // 防止缓存溢出
+          if (this.buf.length > this.maxFrameLength) {
+            console.warn('Frame too long, clearing buffer');
+            this.buf = Buffer.alloc(0);
+          }
+
+          const endIndex = this.buf.lastIndexOf(this.frameEnd);
+          if (endIndex >= 0) {
+            const startIndex = this.buf.lastIndexOf(this.frameStart, endIndex);
+            if (startIndex >= 0 && startIndex < endIndex) {
+              const frame = this.buf.slice(startIndex, endIndex + this.frameEnd.length);
+              this.buf = this.buf.slice(endIndex + this.frameEnd.length); // 剩余保留
+              return frame.toString();
+            }
           }
         }
-      };
+      } catch (err) {
+        console.error('ReadLine error:', err);
+        break;
+      }
+    }
 
-      this.serialPort.on('data', onData);
-    });
+    return null;  // 超时未读取到完整帧
   }
 
   clearBuffer() {
     this.buf = Buffer.alloc(0);
-    try {
-      if (this.serialPort && this.serialPort.readableLength > 0) {
-        this.serialPort.read(this.serialPort.readableLength);
-      }
-    } catch (e) {
-      console.error('Error clearing input buffer:', e);
-    }
   }
 }
 
@@ -407,20 +419,10 @@ async function write(command, method = null, serialPort = null, sock = null) {
         commandLog += i.toString(16).padStart(2, '0') + ' ';
       }
     }
-    console.debug('_write:', commandLog);
-
-    if (typeof serialPort.write === 'function') {
-      await serialPort.write(command);
-      if (typeof serialPort.drain === 'function') {
-        await serialPort.drain();
-      }
-    } else if (typeof serialPort.writePort === 'function') {
-      const result = await serialPort.writePort(command);
-      if (result !== command.length) {
-        throw new Error('writePort failed or incomplete write');
-      }
-    } else {
-      throw new Error('Unsupported serialPort interface');
+    console.debug('_write:', command);
+    const result = await serialPort.writePort(command);
+    if (result !== command.length) {
+      throw new Error('writePort failed or incomplete write');
     }
   }
 }
@@ -431,18 +433,12 @@ async function read(genre, serialPort, baseController, type) {
 
     if (!serialPort) throw new Error('serialPort required for read');
 
-    if (typeof serialPort.write === 'function') {
-      await serialPort.write(requestDataStr);
-    } else if (typeof serialPort.writePort === 'function') {
       const encoder = new TextEncoder();
       const requestData = encoder.encode(requestDataStr);
       const written = await serialPort.writePort(requestData);
       if (written !== requestData.length) {
         throw new Error('writePort failed or incomplete write');
       }
-    } else {
-      throw new Error('Unsupported serialPort interface');
-    }
   }
 
   if (!baseController) {

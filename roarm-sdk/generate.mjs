@@ -85,6 +85,7 @@ export class CommandGenerator extends DataProcessor {
 
   joints_angle_get() {
     const value = this.feedback_get();
+    console.log(value);
 
     if (!(value instanceof Uint8Array)) {
       throw new Error('feedback_get() did not return a Uint8Array or Buffer');
