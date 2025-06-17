@@ -42,6 +42,7 @@ class ReadLine {
     while (performance.now() - start < this.timeout) {
       try {
         const { value, done } = await this.serialPort.reader.read();
+        console.log(value);
 
         if (done) {
           console.warn('Stream closed');
@@ -444,7 +445,6 @@ async function read(genre, serialPort, type) {
         throw new Error('writePort failed or incomplete write');
       }
   }
-
 
   const baseController = new BaseController(type, serialPort);
 
