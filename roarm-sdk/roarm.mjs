@@ -48,16 +48,10 @@ export class Roarm extends CommandGenerator {
     }
 
     this._write = async (command) => {
-      if (!this.portHandler || !this.portHandler.isOpen) {
-        throw new Error('Port is not open');
-      }
       return await write(command, null, this.portHandler, null);
     };
 
     this._read = async (genre) => {
-      if (!this.portHandler ) {
-        throw new Error('Port is not open');
-      }
       if (!this._baseController) {
         const { BaseController } = await import('./utils.mjs');
         this._baseController = new BaseController(this.type, this.portHandler);

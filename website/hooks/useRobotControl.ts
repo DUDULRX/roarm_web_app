@@ -155,7 +155,6 @@ export function useRobotControl(initialJointDetails: JointDetails[]) {
             const relativeValue = (initialPositions[jointIndex] || 0) + value; // Calculate relative position
             // Check if relativeValue is within the valid range (0-360 degrees)
             // if (relativeValue >= 0 && relativeValue <= 360) {
-              console.log(servoId,Math.round(relativeValue))
               await roarm.joint_angle_ctrl(servoId,Math.round(relativeValue),0,0);
               newStates[jointIndex].realDegrees = relativeValue; // Update relative realDegrees
             // } else {
@@ -222,7 +221,6 @@ export function useRobotControl(initialJointDetails: JointDetails[]) {
       if (isConnected && Object.keys(angles).length > 0) {
         // Only write if there are valid positions and connected
         try {
-          console.log(angles)
           await roarm.joints_angle_ctrl(angles); // Use syncWritePositions with only valid positions
           validUpdates.forEach(({ servoId, relativeValue }) => {
             // Update realDegrees only for successfully written joints
