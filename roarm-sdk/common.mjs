@@ -70,14 +70,14 @@ class ReadLine {
               return frame;
             }
           }
+        const elapsed = performance.now() - startTime;
+        if (elapsed > this.timeout) {
+          console.warn("ReadLine timeout.",elapsed);
+          return null;
+        }
         } else {
           // 无数据小等待
           await new Promise(resolve => setTimeout(resolve, 10));
-        }
-        const elapsed = performance.now() - startTime;
-        if (elapsed > this.timeout) {
-          console.warn("ReadLine timeout.");
-          return null;
         }
       } catch (err) {
         console.error("ReadLine error:", err);
