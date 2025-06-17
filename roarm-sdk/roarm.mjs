@@ -27,38 +27,44 @@ export class Roarm extends CommandGenerator {
     this._read = null;
   }
 
-  async connect() {
-    if (this.host) {
-      console.log(`Connecting via host: ${this.host}`);
-      // TODO: 如果要通过 host 连接，后续实现
-      return;
-    }
-
-    this.portHandler = new PortHandler();
-    this.portHandler.setBaudRate(this.baudrate);
-
-    const granted = await this.portHandler.requestPort();
-    if (!granted) {
-      throw new Error('Serial port access denied');
-    }
-
-    const opened = await this.portHandler.openPort();
-    if (!opened) {
-      throw new Error('Failed to open serial port');
-    }
-
-    this._write = async (command) => {
-      return await write(command, null, this.portHandler, null);
-    };
-
-    this._read = async (genre) => {
-      if (!this._baseController) {
-        const { BaseController } = await import('./utils.mjs');
-        this._baseController = new BaseController(this.type, this.portHandler);
-      }
-      return await read(genre, this.portHandler, this._baseController, this.type);
-    };
+async connect() {
+  if (this.host) {
+    console.log(`Connecting via host: ${this.host}`);
+    // TODO: 后续实现基于 host 的通信
+    return;
   }
+
+  this.portHandler = new PortHandler();
+  this.portHandler.setBaudRate(this.baudrate);
+
+  const granted = await this.portHandler.requestPort();
+  if (!granted) {
+    throw new Error('Serial port access denied');
+  }
+
+  const opened = await this.portHandler.openPort();
+  if (!opened) {
+    throw new Error('Failed to open serial port');
+  }
+
+  // 确保 portHandler 已就绪
+  if (!this.portHandler) {
+    throw new Error("Port is not initialized.");
+  }
+
+  this._write = async (command) => {
+    return await write(command, null, this.portHandler, null);
+  };
+
+  this._read = async (genre) => {
+    if (!this._baseController) {
+      const { BaseController } = await import('./utils.mjs');
+      this._baseController = new BaseController(this.type, this.portHandler);
+    }
+    return await read(genre, this.portHandler, this._baseController, this.type);
+  };
+}
+
 
   async _mesg(genre, ...args) {
     const real_command = super._mesg(genre, ...args);
