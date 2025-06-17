@@ -205,16 +205,16 @@ export function useRobotControl(initialJointDetails: JointDetails[]) {
           if (isConnected) {
             const relativeValue = (initialPositions[jointIndex] || 0) + value; // Calculate relative position
             // Check if relativeValue is within the valid range (0-360 degrees)
-            if (relativeValue >= 0 && relativeValue <= 360) {
+            // if (relativeValue >= 0 && relativeValue <= 360) {
               angles[servoId] = Math.round(relativeValue);
               validUpdates.push({ servoId, value, relativeValue }); // Store valid updates
-            } else {
-              console.warn(
-                `Relative value ${relativeValue} for servo ${servoId} is out of range (0-360). Skipping update in sync write.`
-              );
+            // } else {
+            //   console.warn(
+            //     `Relative value ${relativeValue} for servo ${servoId} is out of range (0-360). Skipping update in sync write.`
+            //   );
               // Optionally update realDegrees for the skipped joint here or after the sync write
               // newStates[jointIndex].realDegrees = relativeValue; // Or keep the previous value
-            }
+            // }
           }
         }
       });
