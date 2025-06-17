@@ -35,6 +35,7 @@ class ReadLine {
     if (!this.serialPort?.reader) {
       throw new Error('Serial port reader not available.');
     }
+    console.log("readline");
 
     this.buf = Buffer.alloc(0);
     const start = performance.now();
@@ -360,7 +361,6 @@ class DataProcessor {
       command = switchDict[genre](this.type, command, commandData);
     }
     console.log(command);
-    console.log(this.flatten(command));
     return this.flatten(command);
   }
 
