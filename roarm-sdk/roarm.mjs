@@ -22,9 +22,7 @@ export class Roarm extends CommandGenerator {
     this.baudrate = baudrate;
     this.timeout = timeout;
     this.stop_flag = false;
-    this._baseController = null;
-    this._write = null;
-    this._read = null;
+    this.baseController = null;
   }
 
 async connect() {
@@ -51,18 +49,6 @@ async connect() {
   if (!this.portHandler) {
     throw new Error("Port is not initialized.");
   }
-
-  this._write = async (command) => {
-    return await write(command, null, this.portHandler, null);
-  };
-
-  this._read = async (genre) => {
-    if (!this._baseController) {
-      const { BaseController } = await import('./utils.mjs');
-      this._baseController = new BaseController(this.type, this.portHandler);
-    }
-    return await read(genre, this.portHandler, this._baseController, this.type);
-  };
 }
 
 
@@ -92,11 +78,11 @@ async connect() {
         }
       } else {
         try {
-          await this._write(real_command);
+          await write(real_command, null, this.portHandler, null);
           if (genre !== JsonCmd.FEEDBACK_GET) {
             data = real_command;
           } else {
-            data = await this._read(genre);
+            data = await read(genre, this.portHandler, this.baseController, this.type);
           }
         } catch (e) {
           console.warn('Serial read/write error:', e);
