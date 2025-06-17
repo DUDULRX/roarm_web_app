@@ -74,8 +74,9 @@ async connect() {
 
   async _res(real_command, genre) {
     let try_count = 0;
+    let data = null;
+
     while (try_count < 10) {
-      let data = null;
 
       if (this.host) {
         const url = `http://${this.host}/js?json=${real_command.toString()}`;
