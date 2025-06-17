@@ -41,12 +41,6 @@ export class ReadLine {
     }
 
     while (true) {
-      const elapsed = performance.now() - startTime;
-      if (elapsed > this.timeout) {
-        console.warn("ReadLine timeout.");
-        return null;
-      }
-
       try {
         const { value, done } = await reader.read();
 
@@ -80,7 +74,11 @@ export class ReadLine {
           // 无数据小等待
           await new Promise(resolve => setTimeout(resolve, 10));
         }
-
+        const elapsed = performance.now() - startTime;
+        if (elapsed > this.timeout) {
+          console.warn("ReadLine timeout.");
+          return null;
+        }
       } catch (err) {
         console.error("ReadLine error:", err);
         return null;
