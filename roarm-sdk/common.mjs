@@ -423,14 +423,14 @@ async function read(genre, serialPort, baseController, type) {
   }
 
   if (!baseController) {
-    // baseController = new BaseController(type, serialPort);
+    baseController = new BaseController(type, serialPort);
   }
 
-  // const data = await baseController.feedbackData();
-  // if (data) {
-  //   // console.debug('_read:', data);
-  //   return data;
-  // }
+  const data = await baseController.feedbackData();
+  if (data) {
+    console.debug('_read:', data);
+    return data;
+  }
   return null;
 }
 

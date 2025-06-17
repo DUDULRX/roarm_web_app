@@ -22,8 +22,27 @@ export class Roarm extends CommandGenerator {
     this.baudrate = baudrate;
     this.timeout = timeout;
     this.stop_flag = false;
-    this._write = write;
-    this._read = read;
+    this._baseController = null;
+    // this._write = write;
+    // this._read = read;
+    this._write = async (command) => {
+      const port = this.portHandler?.port;
+      const method = this.host ? 'http' : null;
+      const sock = null; // optional socket if needed
+      return await write(command, method, port, sock);
+    };
+    this._read = async (genre) => {
+      const port = this.portHandler?.port;
+      if (!port) throw new Error("Serial port is not initialized.");
+
+      if (!this._baseController) {
+        const { BaseController } = await import('./utils.mjs');
+        this._baseController = new BaseController(this.type, port);
+      }
+
+      return await read(genre, port, this._baseController, this.type);
+    };
+
     this.portHandler = null; 
   }
 
@@ -48,8 +67,7 @@ export class Roarm extends CommandGenerator {
   }
 
   async _mesg(genre, ...args) {
-    // const real_command = super._mesg(genre, ...args);
-    console.log(genre, ...args)
+    const real_command = super._mesg(genre, ...args);
     return this._res(real_command, genre);
   }
 
