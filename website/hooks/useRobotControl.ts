@@ -183,7 +183,7 @@ export function useRobotControl(initialJointDetails: JointDetails[]) {
 
   // Update multiple joints' degrees simultaneously
   const updateJointsDegrees: UpdateJointsDegrees = useCallback(
-    async (updates) => {
+  async (updates) => {
       const newStates = [...jointStates];
       const angles: Record<number, number> = {};
       const validUpdates: {
@@ -191,6 +191,7 @@ export function useRobotControl(initialJointDetails: JointDetails[]) {
         value: number;
         relativeValue: number;
       }[] = [];
+    console.log('updates:', updates);
 
       updates.forEach(({ servoId, value }) => {
         const jointIndex = newStates.findIndex(
