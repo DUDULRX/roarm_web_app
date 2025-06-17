@@ -46,12 +46,17 @@ async connect() {
     }
 
     this.portHandler.setBaudRate(this.baudrate);
-    const portOpened = await this.portHandler.requestPort();
+    const portOpened = await this.portHandler.openPort();
     if (!portOpened) {
       await this.portHandler.closePort().catch(console.error); // Attempt cleanup
       this.portHandler = null;
       throw new Error(`Failed to open port at baudrate ${this.baudRate}.`);
     }
+    if (!this.baseController && this.portHandler) {
+      const { BaseController } = await import('./utils.mjs');
+      this.baseController = new BaseController(this.type, this.portHandler);
+    }
+
   }catch (err) {
     console.error("Error during connection:", err);
     if (this.portHandler) {
