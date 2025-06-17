@@ -61,8 +61,8 @@ class ReadLine {
           if (endIndex >= 0) {
             const startIndex = this.buf.lastIndexOf(this.frameStart, endIndex);
             if (startIndex >= 0 && startIndex < endIndex) {
-              const frame = this.buf.slice(startIndex, endIndex + this.frameEnd.length);
-              this.buf = this.buf.slice(endIndex + this.frameEnd.length); // 剩余保留
+              const frame = Buffer.from(this.buf.subarray(startIndex, endIndex + this.frameEnd.length));
+              this.buf = this.buf.subarray(endIndex + this.frameEnd.length); 
               return frame.toString();
             }
           }
