@@ -23,68 +23,75 @@ const JsonCmd = {
 
 class ReadLine {
   constructor(serialPort, timeout = 100) {
-    this.buf = Buffer.alloc(0);
-    this.serialPort = serialPort;  
-    this.timeout = timeout;          
-    this.frameStart = Buffer.from('{');
-    this.frameEnd = Buffer.from('}\r\n');
+    this.buf = "";                     
+    this.serialPort = serialPort;
+    this.timeout = timeout;           
+    this.frameStart = "{";
+    this.frameEnd = "}\r\n";
     this.maxFrameLength = 512;
   }
 
-  async readline(){
-    if (!this.serialPort?.reader) {
-      throw new Error('Serial port reader not available.');
+  async readline() {
+    if (!this.serialPort?.readable) {
+      throw new Error('Serial port not readable.');
     }
 
+    const textDecoder = new TextDecoderStream();
+    this.serialPort.readable.pipeTo(textDecoder.writable);
+    const reader = textDecoder.readable.getReader();
+
     const startTime = performance.now();
-    this.buf = Buffer.alloc(0);
 
     while (true) {
-      const elapsed = performance.now() - startTime;
-      if (elapsed > this.timeout * 1000) break;
-
       try {
-        const { value, done } = await this.serialPort.reader.read();
+        const { value, done } = await reader.read();
 
         if (done) {
-          console.warn('Stream closed');
+          console.warn("Serial stream closed.");
           break;
         }
 
-        if (value?.length > 0) {
-          this.buf = Buffer.concat([this.buf, Buffer.from(value)]);
+        if (value) {
+          this.buf += value;
 
           if (this.buf.length > this.maxFrameLength) {
             console.warn('Buffer too long, clearing buffer');
-            this.buf = Buffer.alloc(0);
+            this.buf = "";
             continue;
           }
 
           const endIndex = this.buf.lastIndexOf(this.frameEnd);
           if (endIndex >= 0) {
-            const startIndex = this.buf.lastIndexOf(this.frameStart, 0, endIndex);
+            const startIndex = this.buf.lastIndexOf(this.frameStart, endIndex);
             if (startIndex >= 0 && startIndex < endIndex) {
-              const frame = this.buf.subarray(startIndex, endIndex + this.frameEnd.length);
-              this.buf = this.buf.subarray(endIndex + this.frameEnd.length);
-              return frame.toString('utf-8');
-            } else if (startIndex === -1) {
-              continue;
+              const frame = this.buf.slice(startIndex, endIndex + this.frameEnd.length);
+              this.buf = this.buf.slice(endIndex + this.frameEnd.length);
+              reader.releaseLock();  // 释放 reader
+              return frame;
             }
           }
         }
+
+        const elapsed = performance.now() - startTime;
+        if (elapsed > this.timeout * 1000) {
+          console.warn("Read timeout.");
+          break;
+        }
       } catch (err) {
-        console.error('ReadLine error:', err);
+        console.error("ReadLine error:", err);
         break;
       }
     }
-    return null; 
-  }
 
+    reader.releaseLock();
+    return null;
+  }
 
   clearBuffer() {
-    this.buf = Buffer.alloc(0);
+    this.buf = "";
   }
 }
+
 
 class BaseController {
   constructor(roarmType, serialPort) {
