@@ -32,25 +32,40 @@ async connect() {
     return;
   }
 
-  this.portHandler = new PortHandler();
-  this.portHandler.setBaudRate(this.baudrate);
-
-  const granted = await this.portHandler.requestPort();
-  if (!granted) {
-    throw new Error('Serial port access denied');
+  if (this.portHandler && this.portHandler.isOpen) {
+    console.log("Already connected.");
+    return true;
   }
 
-  const opened = await this.portHandler.openPort();
-  if (!opened) {
-    throw new Error('Failed to open serial port');
-  }
+  try{
+    this.portHandler = new PortHandler();
+    const portRequested = await this.portHandler.requestPort();
+    if (!portRequested) {
+      this.portHandler = null;
+      throw new Error("Failed to select a serial port.");
+    }
 
-  // 确保 portHandler 已就绪
-  if (!this.portHandler) {
-    throw new Error("Port is not initialized.");
+    this.portHandler.setBaudRate(this.baudrate);
+    const portOpened = await this.portHandler.requestPort();
+    if (!portOpened) {
+      await this.portHandler.closePort().catch(console.error); // Attempt cleanup
+      this.portHandler = null;
+      throw new Error(`Failed to open port at baudrate ${this.baudRate}.`);
+    }
+  }catch (err) {
+    console.error("Error during connection:", err);
+    if (this.portHandler) {
+      try {
+        await this.portHandler.closePort();
+      } catch (closeErr) {
+        console.error("Error closing port after connection failure:", closeErr);
+      }
+    }
+    this.portHandler = null;
+    // Re-throw the original or a new error
+    throw new Error(`Connection failed: ${err.message}`);
   }
 }
-
 
   async _mesg(genre, ...args) {
     const real_command = super._mesg(genre, ...args);
