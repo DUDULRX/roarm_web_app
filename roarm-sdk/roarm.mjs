@@ -23,31 +23,14 @@ export class Roarm extends CommandGenerator {
     this.timeout = timeout;
     this.stop_flag = false;
     this._baseController = null;
-    // this._write = write;
-    // this._read = read;
-    this._write = async (command) => {
-      const port = this.portHandler;
-      const method = this.host ? 'http' : null;
-      const sock = null; // optional socket if needed
-      return await write(command, method, port, sock);
-    };
-    this._read = async (genre) => {
-      const port = this.portHandler;
-      if (!port) throw new Error("Serial port is not initialized.");
-
-      if (!this._baseController) {
-        const { BaseController } = await import('./utils.mjs');
-        this._baseController = new BaseController(this.type, port);
-      }
-
-      return await read(genre, port, this._baseController, this.type);
-    };
-
+    this._write = null;
+    this._read = null;
   }
 
   async connect() {
     if (this.host) {
       console.log(`Connecting via host: ${this.host}`);
+      // TODO: 如果要通过 host 连接，后续实现
       return;
     }
 
@@ -63,6 +46,25 @@ export class Roarm extends CommandGenerator {
     if (!opened) {
       throw new Error('Failed to open serial port');
     }
+
+    this._write = async (command) => {
+      if (!this.portHandler) {
+        throw new Error('Port is not open');
+      }
+      return await this.portHandler.writePort(command);
+    };
+
+    // 绑定读方法
+    this._read = async (genre) => {
+      if (!this.portHandler) {
+        throw new Error('Port is not open');
+      }
+      if (!this._baseController) {
+        const { BaseController } = await import('./utils.mjs');
+        this._baseController = new BaseController(this.type, this.portHandler);
+      }
+      return await read(genre, this.portHandler, this._baseController, this.type);
+    };
   }
 
   async _mesg(genre, ...args) {
