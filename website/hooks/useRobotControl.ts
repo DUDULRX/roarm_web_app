@@ -156,7 +156,7 @@ export function useRobotControl(initialJointDetails: JointDetails[]) {
             const relativeValue = (initialPositions[jointIndex] || 0) + value; // Calculate relative position
             // Check if relativeValue is within the valid range (0-360 degrees)
             // if (relativeValue >= 0 && relativeValue <= 360) {
-              await roarm.joint_angle_ctrl(servoId,Math.round(relativeValue),0,10);
+              await roarm.joint_angle_ctrl(servoId,Math.round(relativeValue),0,0);
               newStates[jointIndex].realDegrees = relativeValue; // Update relative realDegrees
             // } else {
             //   console.warn(
@@ -215,7 +215,7 @@ export function useRobotControl(initialJointDetails: JointDetails[]) {
 
         try {
           console.log("写入角度数组:", anglesArray); // 形如 [12, 45, 88, 0, 50, 90]
-          await roarm.joints_angle_ctrl(anglesArray, 0, 10);
+          await roarm.joints_angle_ctrl(anglesArray, 0, 0);
         } catch (error) {
           console.error("批量更新舵机角度失败:", error);
         }
