@@ -31,19 +31,20 @@ class ReadLine {
     this.maxFrameLength = 512;
   }
 
-  async readline() {
+  async readline(){
     if (!this.serialPort?.reader) {
       throw new Error('Serial port reader not available.');
     }
-    console.log("readline");
 
+    const startTime = performance.now();
     this.buf = Buffer.alloc(0);
-    const start = performance.now();
 
-    while (performance.now() - start < this.timeout) {
+    while (true) {
+      const elapsed = performance.now() - startTime;
+      if (elapsed > this.timeout * 1000) break;
+
       try {
         const { value, done } = await this.serialPort.reader.read();
-        console.log(value);
 
         if (done) {
           console.warn('Stream closed');
@@ -53,19 +54,21 @@ class ReadLine {
         if (value?.length > 0) {
           this.buf = Buffer.concat([this.buf, Buffer.from(value)]);
 
-          // 防止缓存溢出
           if (this.buf.length > this.maxFrameLength) {
-            console.warn('Frame too long, clearing buffer');
+            console.warn('Buffer too long, clearing buffer');
             this.buf = Buffer.alloc(0);
+            continue;
           }
 
           const endIndex = this.buf.lastIndexOf(this.frameEnd);
           if (endIndex >= 0) {
-            const startIndex = this.buf.lastIndexOf(this.frameStart, endIndex);
+            const startIndex = this.buf.lastIndexOf(this.frameStart, 0, endIndex);
             if (startIndex >= 0 && startIndex < endIndex) {
-              const frame = Buffer.from(this.buf.subarray(startIndex, endIndex + this.frameEnd.length));
-              this.buf = this.buf.subarray(endIndex + this.frameEnd.length); 
-              return frame.toString();
+              const frame = this.buf.subarray(startIndex, endIndex + this.frameEnd.length);
+              this.buf = this.buf.subarray(endIndex + this.frameEnd.length);
+              return frame.toString('utf-8');
+            } else if (startIndex === -1) {
+              continue;
             }
           }
         }
@@ -74,9 +77,9 @@ class ReadLine {
         break;
       }
     }
-
-    return null;  // 超时未读取到完整帧
+    return null; 
   }
+
 
   clearBuffer() {
     this.buf = Buffer.alloc(0);
