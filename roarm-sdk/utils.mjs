@@ -220,7 +220,7 @@ export class PortHandler {
     }
     
     try {
-      await this.writer.write(new Uint8Array(data));
+      await this.writer.write(data);
       return data.length;
     } catch (err) {
       console.error('Error writing to port:', err);

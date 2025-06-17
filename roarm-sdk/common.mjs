@@ -334,8 +334,6 @@ class DataProcessor {
   }
 
   _mesg(genre, ...args) {
-    console.log(genre);
-    console.log(args);
     const commandData = this.processDataCommand(args);
     const switchDict = {
       [JsonCmd.ECHO_SET]: handleEchoOrTorqueSet,
@@ -361,6 +359,7 @@ class DataProcessor {
       command = switchDict[genre](this.type, command, commandData);
     }
     console.log(command);
+    console.log(this.flatten(command));
     return this.flatten(command);
   }
 
