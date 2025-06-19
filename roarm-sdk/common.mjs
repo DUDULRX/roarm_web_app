@@ -53,8 +53,9 @@ class ReadLine {
 
           if (this.buf.length > this.maxFrameLength) {
             console.warn("Buffer overflow, clearing buffer.");
-            this.buf = "";
-            continue;
+            // this.buf = "";
+            // continue;
+            this.buf = this.buf.slice(-this.maxFrameLength);
           }
 
           const endIdx = this.buf.indexOf(this.frameEnd);
@@ -63,7 +64,6 @@ class ReadLine {
             if (startIdx !== -1 && startIdx < endIdx) {
               const frame = this.buf.slice(startIdx, endIdx + this.frameEnd.length);
               this.buf = this.buf.slice(endIdx + this.frameEnd.length); 
-              console.log("frame",frame)
               return frame;
             }
           }
@@ -106,7 +106,6 @@ class BaseController {
     try {
       const line = await this.rl.readline();
       if (!line) return null;
-      console.log("line",line)
       this.dataBuffer = JSON.parse(line);
       this.baseData = this.dataBuffer;
       this.rl.clearBuffer();
