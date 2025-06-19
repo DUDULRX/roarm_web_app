@@ -22,7 +22,7 @@ const JsonCmd = {
 };
 
 class ReadLine {
-  constructor(portHandler, timeout = 200) { // ms
+  constructor(portHandler, timeout = 1000) { // ms
     this.portHandler = portHandler;
     this.buf = "";                  // 改成字符串缓存
     this.frameStart = '{';          // 字符
@@ -46,33 +46,32 @@ class ReadLine {
         }
 
         if (value && value.length > 0) {
-          this.buf += value;  // 直接字符串拼接
+          // 合并缓存和新数据
+          const combined = new Uint8Array(this.buf.length + value.length);
+          combined.set(this.buf);
+          combined.set(value, this.buf.length);
+          this.buf = combined;
 
-          console.log("Buffer length:", this.buf.length);
-          console.log("Buffer content:", this.buf);
-
-          // 找结束符
-          let end = this.buf.indexOf(this.frameEnd);
+          // 查找结束符位置
+          let end = this.indexOfSubArray(this.buf, this.frameEnd);
           while (end !== -1) {
-            // 找对应起始符
-            let start = this.buf.lastIndexOf(this.frameStart, end);
+            // 找起始符位置
+            let start = this.lastIndexOfByte(this.buf, this.frameStart, end);
             if (start !== -1 && start < end) {
+              // 提取完整帧
               const frame = this.buf.slice(start, end + this.frameEnd.length);
-              console.log("Found frame:", frame);
-
-              // 从缓存中删掉这个帧
+              // 更新缓存，删除已处理帧
               this.buf = this.buf.slice(end + this.frameEnd.length);
-
-              // return frame; // 找到一个完整帧就返回
+              return frame;
             } else {
-              // 找不到起始符，丢弃这段数据之前的内容
+              // 没找到起始符，丢弃无效数据
               this.buf = this.buf.slice(end + this.frameEnd.length);
             }
-
-            end = this.buf.indexOf(this.frameEnd);
+            // 继续查找下一个结束符
+            end = this.indexOfSubArray(this.buf, this.frameEnd);
           }
 
-          // 缓冲区过长就截断保留尾部
+          // 缓存过长，截取尾部
           if (this.buf.length > this.maxFrameLength) {
             this.buf = this.buf.slice(this.buf.length - this.maxFrameLength);
           }
@@ -89,6 +88,29 @@ class ReadLine {
         return null;
       }
     }
+  }
+
+  // 查找子数组位置的辅助函数
+  indexOfSubArray(haystack, needle) {
+    for (let i = 0; i <= haystack.length - needle.length; i++) {
+      let found = true;
+      for (let j = 0; j < needle.length; j++) {
+        if (haystack[i + j] !== needle[j]) {
+          found = false;
+          break;
+        }
+      }
+      if (found) return i;
+    }
+    return -1;
+  }
+
+  // 查找单字节最后一次出现的位置（起始符）
+  lastIndexOfByte(arr, byte, fromIndex) {
+    for (let i = fromIndex; i >= 0; i--) {
+      if (arr[i] === byte) return i;
+    }
+    return -1;
   }
 
   clearBuffer() {
