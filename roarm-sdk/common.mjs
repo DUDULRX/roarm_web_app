@@ -53,10 +53,10 @@ class ReadLine {
         // if (value && value.length > 0) {
         if (value) {
           console.log("value",performance.now(),new TextDecoder().decode(value))
-          console.log("newBuf ",performance.now(),this.buf)
+          console.log("1 ",performance.now(),this.buf)
           const data = new TextDecoder().decode(value);
           this.buf += data;
-          console.log("newBuf ",performance.now(),this.buf)
+          console.log("2 ",performance.now(),this.buf)
 
 
           if (this.buf.length > this.maxFrameLength) {
@@ -68,7 +68,7 @@ class ReadLine {
 
           if (end !== -1) {
             // console.log("this.buf ",performance.now(),this.buf)
-            let start = this.buf.indexOf(this.frameEnd);
+            let start = this.buf.indexOf(this.frameStart);
 
             if (start !== -1 && start < end) {
               const frame = this.buf.slice(start, end + 3);
