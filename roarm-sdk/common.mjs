@@ -57,6 +57,8 @@ class ReadLine {
           newBuf.set(this.buf);
           newBuf.set(value, this.buf.length);
           this.buf = newBuf;
+          console.log("newBuf ",performance.now(),new TextDecoder().decode(this.buf))
+
 
           if (this.buf.length > this.maxFrameLength) {
             this.buf = this.buf.slice(-this.maxFrameLength);
