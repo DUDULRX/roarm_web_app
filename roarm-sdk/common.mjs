@@ -70,7 +70,7 @@ class ReadLine {
           await new Promise(resolve => setTimeout(resolve, 10));
         }
         const elapsed = performance.now() - startTime;
-        console.warn("ReadLine timeout.",elapsed);
+        console.log("ReadLine time.",elapsed);
 
         // if (elapsed > this.timeout) {
           // console.warn("ReadLine timeout.",elapsed);
