@@ -64,6 +64,7 @@ class ReadLine {
             if (startIdx !== -1 && startIdx < endIdx) {
               const frame = this.buf.slice(startIdx, endIdx + this.frameEnd.length);
               this.buf = this.buf.slice(endIdx + this.frameEnd.length); 
+              console.log("frame",frame)
               return frame;
             }
           }
@@ -106,6 +107,7 @@ class BaseController {
     try {
       const line = await this.rl.readline();
       if (!line) return null;
+      console.log("line",line)
       this.dataBuffer = JSON.parse(line);
       this.baseData = this.dataBuffer;
       this.rl.clearBuffer();
