@@ -33,7 +33,11 @@ class ReadLine {
 
   async readline() {
     const startTime = performance.now();
-    const reader = this.portHandler.reader;
+    // const reader = this.portHandler.reader;
+    const textDecoder = new TextDecoderStream();
+    const readableStreamClosed = this.portHandler.readable.pipTo(textDecoder.writable);
+    const reader = textDecoder.readable.getReader();
+
     if (!reader) throw new Error('PortHandler reader not initialized.');
 
     while (true) {
@@ -41,6 +45,7 @@ class ReadLine {
         const { value, done } = await reader.read();
         if (done) {
           console.warn('Serial reader closed.');
+          reader.releaseLock();
           // return null;
         }
 
