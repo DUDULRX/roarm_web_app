@@ -55,36 +55,25 @@ class ReadLine {
           console.log("value",performance.now(),new TextDecoder().decode(value))
           const data = new TextDecoder().decode(value);
           this.buf += data;
-          console.log("newBuf ",performance.now(),new TextDecoder().decode(this.buf))
+          console.log("newBuf ",performance.now(),this.buf)
 
 
           if (this.buf.length > this.maxFrameLength) {
             this.buf = this.buf.slice(-this.maxFrameLength);
           }
-          console.log("this.buf ",performance.now(),new TextDecoder().decode(this.buf))
+          console.log("this.buf ",performance.now(),this.buf)
 
-          let end = -1;
-          for (let i = 0; i <= this.buf.length - 3; i++) {
-            if (this.buf[i] === 125 && this.buf[i + 1] === 13 && this.buf[i + 2] === 10) {
-              end = i;
-            }
-          }
+          let end = this.buf.indexOf(this.frameEnd);
 
-          if (end >= 0) {
-            console.log("this.buf ",performance.now(),new TextDecoder().decode(this.buf))
-            let start = -1;
-            for (let i = end; i >= 0; i--) {
-              if (this.buf[i] === this.frameStart) {
-                start = i;
-                break;
-              }
-            }
+          if (end !== -1) {
+            console.log("this.buf ",performance.now(),nthis.buf)
+            let start = this.buf.indexOf(this.frameEnd);
 
-            if (start >= 0 && start < end) {
+            if (start !== -1 && start < end) {
               const frame = this.buf.slice(start, end + 3);
               this.buf = this.buf.slice(end + 3);
-              console.log("new TextDecoder().decode(frame)",performance.now(),new TextDecoder().decode(frame))
-              // return new TextDecoder().decode(frame);
+              console.log("frame",performance.now(),frame)
+              // return frame;
             }
           }
         }
