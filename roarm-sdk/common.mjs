@@ -66,7 +66,7 @@ class ReadLine {
           let end = this.buf.indexOf(this.frameEnd);
 
           if (end !== -1) {
-            console.log("this.buf ",performance.now(),nthis.buf)
+            console.log("this.buf ",performance.now(),this.buf)
             let start = this.buf.indexOf(this.frameEnd);
 
             if (start !== -1 && start < end) {
