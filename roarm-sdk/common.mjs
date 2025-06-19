@@ -76,7 +76,7 @@ class ReadLine {
             if (start >= 0 && start < end) {
               const frame = this.buf.slice(start, end + 3);
               this.buf = this.buf.slice(end + 3);
-              console.log("new TextDecoder().decode(frame)",new TextDecoder().decode(frame))
+              console.log("new TextDecoder().decode(frame)",performance.now(),new TextDecoder().decode(frame))
               // return new TextDecoder().decode(frame);
             }
           }
