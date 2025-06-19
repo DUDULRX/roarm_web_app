@@ -52,7 +52,7 @@ class ReadLine {
         
         // if (value && value.length > 0) {
         if (value) {
-          console.log("value",performance.now(),value)
+          console.log("value",performance.now(),new TextDecoder().decode(value))
           const newBuf = new Uint8Array(this.buf.length + value.length);
           newBuf.set(this.buf);
           newBuf.set(value, this.buf.length);
