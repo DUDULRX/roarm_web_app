@@ -388,7 +388,6 @@ class DataProcessor {
 
   processReceived(data, genre) {
     if (!data) return null;
-    data = new TextDecoder().decode(data);
     console.log('Received data:', data);
 
     const handlers = {
