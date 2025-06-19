@@ -104,6 +104,7 @@ class BaseController {
     try {
       const line = await this.rl.readline();
       if (!line) return null;
+      console.log('Raw line:', JSON.stringify(line)); 
       this.dataBuffer = JSON.parse(line);
       this.baseData = this.dataBuffer;
       this.rl.clearBuffer();
