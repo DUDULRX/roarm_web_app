@@ -51,12 +51,12 @@ class ReadLine {
         if (value) {
           this.buf += value; 
 
-          if (this.buf.length > this.maxFrameLength) {
-            console.warn("Buffer overflow, clearing buffer.");
-            // this.buf = "";
-            // continue;
-            this.buf = this.buf.slice(-this.maxFrameLength);
-          }
+          // if (this.buf.length > this.maxFrameLength) {
+          //   console.warn("Buffer overflow, clearing buffer.");
+          //   // this.buf = "";
+          //   // continue;
+          //   this.buf = this.buf.slice(-this.maxFrameLength);
+          // }
 
           const endIdx = this.buf.indexOf(this.frameEnd);
           if (endIdx !== -1) {
