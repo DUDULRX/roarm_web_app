@@ -22,102 +22,81 @@ const JsonCmd = {
 };
 
 class ReadLine {
-  constructor(portHandler, timeout = 1000) { // ms
+  constructor(portHandler, timeout = 200) {
     this.portHandler = portHandler;
-    this.buf = "";                  // 改成字符串缓存
-    this.frameStart = '{';          // 字符
-    this.frameEnd = "}\r\n";        // 字符串
+    this.buf = new Uint8Array();
+    this.frameStart = '{'.charCodeAt(0);     // 123
+    this.frameEnd = [125, 13, 10];           // '}\r\n'
     this.maxFrameLength = 512;
-    this.timeout = timeout;
+    this.timeout = timeout; // ms
   }
 
   async readline() {
     const startTime = performance.now();
     const reader = this.portHandler.reader;
-    if (!reader) throw new Error('PortHandler reader not initialized.');
+
+    if (!reader) {
+      throw new Error('PortHandler reader not initialized.');
+    }
 
     while (true) {
       try {
         const { value, done } = await reader.read();
         if (done) {
-          console.warn('Serial reader closed.');
-          reader.releaseLock();
-          break;
+          console.warn("Serial reader closed.");
+          // return null;
         }
 
         if (value && value.length > 0) {
-          // 合并缓存和新数据
-          const combined = new Uint8Array(this.buf.length + value.length);
-          combined.set(this.buf);
-          combined.set(value, this.buf.length);
-          this.buf = combined;
+          const newBuf = new Uint8Array(this.buf.length + value.length);
+          newBuf.set(this.buf);
+          newBuf.set(value, this.buf.length);
+          this.buf = newBuf;
 
-          // 查找结束符位置
-          let end = this.indexOfSubArray(this.buf, this.frameEnd);
-          while (end !== -1) {
-            // 找起始符位置
-            let start = this.lastIndexOfByte(this.buf, this.frameStart, end);
-            if (start !== -1 && start < end) {
-              // 提取完整帧
-              const frame = this.buf.slice(start, end + this.frameEnd.length);
-              // 更新缓存，删除已处理帧
-              this.buf = this.buf.slice(end + this.frameEnd.length);
-              return frame;
-            } else {
-              // 没找到起始符，丢弃无效数据
-              this.buf = this.buf.slice(end + this.frameEnd.length);
-            }
-            // 继续查找下一个结束符
-            end = this.indexOfSubArray(this.buf, this.frameEnd);
-          }
-
-          // 缓存过长，截取尾部
           if (this.buf.length > this.maxFrameLength) {
-            this.buf = this.buf.slice(this.buf.length - this.maxFrameLength);
+            this.buf = this.buf.slice(-this.maxFrameLength);
           }
-        } else {
-          await new Promise(r => setTimeout(r, 10));
+
+          let end = -1;
+          for (let i = 0; i <= this.buf.length - 3; i++) {
+            if (this.buf[i] === 125 && this.buf[i + 1] === 13 && this.buf[i + 2] === 10) {
+              end = i;
+            }
+          }
+
+          if (end >= 0) {
+            let start = -1;
+            for (let i = end; i >= 0; i--) {
+              if (this.buf[i] === this.frameStart) {
+                start = i;
+                break;
+              }
+            }
+
+            if (start >= 0 && start < end) {
+              const frame = this.buf.slice(start, end + 3);
+              this.buf = this.buf.slice(end + 3);
+              console.log("new TextDecoder().decode(frame)",performance.now(),new TextDecoder().decode(frame))
+              // return new TextDecoder().decode(frame);
+            }
+          }
         }
 
-        if (performance.now() - startTime > this.timeout) {
-          console.log("ReadLine timeout");
+        const elapsed = performance.now() - startTime;
+        if (elapsed > this.timeout) {
           // return null;
         }
-      } catch (e) {
-        console.error('ReadLine error:', e);
+      } catch (err) {
+        console.error("ReadLine error:", err);
         return null;
       }
     }
   }
 
-  // 查找子数组位置的辅助函数
-  indexOfSubArray(haystack, needle) {
-    for (let i = 0; i <= haystack.length - needle.length; i++) {
-      let found = true;
-      for (let j = 0; j < needle.length; j++) {
-        if (haystack[i + j] !== needle[j]) {
-          found = false;
-          break;
-        }
-      }
-      if (found) return i;
-    }
-    return -1;
-  }
-
-  // 查找单字节最后一次出现的位置（起始符）
-  lastIndexOfByte(arr, byte, fromIndex) {
-    for (let i = fromIndex; i >= 0; i--) {
-      if (arr[i] === byte) return i;
-    }
-    return -1;
-  }
-
   clearBuffer() {
-    this.buf = "";
+    this.buf = new Uint8Array();
   }
 }
-
 
 class BaseController {
   constructor(roarmType, serialPort) {
