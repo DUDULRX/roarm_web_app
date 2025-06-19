@@ -169,7 +169,11 @@ export class PortHandler {
     
     try {
       await this.port.open({ baudRate: this.baudrate });
-      this.reader = this.port.readable.getReader();
+      // this.reader = this.port.readable.getReader();
+      const textDecoder = new TextDecoderStream();
+      this.port.readable.pipeTo(textDecoder.writable);
+      
+      this.reader = textDecoder.readable.getReader();
       this.writer = this.port.writable.getWriter();
       this.isOpen = true;
       this.txTimePerByte = (1000.0 / this.baudrate) * 10.0;

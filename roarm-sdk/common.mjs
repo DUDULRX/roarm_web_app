@@ -24,20 +24,16 @@ const JsonCmd = {
 class ReadLine {
   constructor(portHandler, timeout = 200) { // ms
     this.portHandler = portHandler;
-    this.buf = new Uint8Array(0);
-    this.frameStart = 123; // '{' 字节
-    this.frameEnd = new Uint8Array([125, 13, 10]); // '}\r\n'
+    this.buf = "";                  // 改成字符串缓存
+    this.frameStart = '{';          // 字符
+    this.frameEnd = "}\r\n";        // 字符串
     this.maxFrameLength = 512;
     this.timeout = timeout;
   }
 
   async readline() {
     const startTime = performance.now();
-    // const reader = this.portHandler.reader;
-    const textDecoder = new TextDecoderStream();
-    const readableStreamClosed = this.portHandler.readable.pipeTo(textDecoder.writable);
-    const reader = textDecoder.readable.getReader();
-
+    const reader = this.portHandler.reader;
     if (!reader) throw new Error('PortHandler reader not initialized.');
 
     while (true) {
@@ -46,43 +42,37 @@ class ReadLine {
         if (done) {
           console.warn('Serial reader closed.');
           reader.releaseLock();
-          // return null;
+          break;
         }
 
         if (value && value.length > 0) {
-          const combined = new Uint8Array(this.buf.length + value.length);
-          combined.set(this.buf);
-          combined.set(value, this.buf.length);
-          this.buf = combined;
+          this.buf += value;  // 直接字符串拼接
 
-          let end = -1;
-          for (let i = 0; i <= this.buf.length - this.frameEnd.length; i++) {
-            let matched = true;
-            for (let j = 0; j < this.frameEnd.length; j++) {
-              if (this.buf[i + j] !== this.frameEnd[j]) {
-                matched = false;
-                break;
-              }
-            }
-            if (matched) end = i;
-          }
-          if (end !== -1) {
-            let start = -1;
-            for (let i = end; i >= 0; i--) {
-              if (this.buf[i] === this.frameStart) {
-                start = i;
-                break;
-              }
-            }
+          console.log("Buffer length:", this.buf.length);
+          console.log("Buffer content:", this.buf);
+
+          // 找结束符
+          let end = this.buf.indexOf(this.frameEnd);
+          while (end !== -1) {
+            // 找对应起始符
+            let start = this.buf.lastIndexOf(this.frameStart, end);
             if (start !== -1 && start < end) {
               const frame = this.buf.slice(start, end + this.frameEnd.length);
+              console.log("Found frame:", frame);
+
+              // 从缓存中删掉这个帧
               this.buf = this.buf.slice(end + this.frameEnd.length);
-              console.log("frame", performance.now(), frame);
-              // return new TextDecoder().decode(frame);
+
+              // return frame; // 找到一个完整帧就返回
+            } else {
+              // 找不到起始符，丢弃这段数据之前的内容
+              this.buf = this.buf.slice(end + this.frameEnd.length);
             }
+
+            end = this.buf.indexOf(this.frameEnd);
           }
 
-          // 如果缓存过长，保留末尾部分避免溢出
+          // 缓冲区过长就截断保留尾部
           if (this.buf.length > this.maxFrameLength) {
             this.buf = this.buf.slice(this.buf.length - this.maxFrameLength);
           }
@@ -91,6 +81,7 @@ class ReadLine {
         }
 
         if (performance.now() - startTime > this.timeout) {
+          console.log("ReadLine timeout");
           // return null;
         }
       } catch (e) {
@@ -101,9 +92,10 @@ class ReadLine {
   }
 
   clearBuffer() {
-    this.buf = new Uint8Array(0);
+    this.buf = "";
   }
 }
+
 
 class BaseController {
   constructor(roarmType, serialPort) {
