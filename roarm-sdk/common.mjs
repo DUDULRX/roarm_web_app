@@ -50,6 +50,7 @@ class ReadLine {
 
         if (value) {
           this.buf += value; 
+          console.log("this.buf",this.buf)
 
           // if (this.buf.length > this.maxFrameLength) {
           //   console.warn("Buffer overflow, clearing buffer.");
@@ -65,7 +66,7 @@ class ReadLine {
               const frame = this.buf.slice(startIdx, endIdx + this.frameEnd.length);
               this.buf = this.buf.slice(endIdx + this.frameEnd.length); 
               console.log("frame",frame)
-              return frame;
+              // return frame;
             }
           }
         } else {
