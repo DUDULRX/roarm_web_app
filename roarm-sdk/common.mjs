@@ -27,7 +27,7 @@ class ReadLine {
     this.buf = "";                           // 字符串缓冲区
     this.frameStart = "{";
     this.frameEnd = "}\r\n";
-    this.maxFrameLength = 2048;
+    this.maxFrameLength = 512;
     this.timeout = timeout;                  // ms
   }
 
@@ -40,12 +40,6 @@ class ReadLine {
     }
 
     while (true) {
-      const elapsed = performance.now() - startTime;
-      if (elapsed > this.timeout) {
-        console.warn("ReadLine timeout.",elapsed);
-        return null;
-      }
-
       try {
         const { value, done } = await reader.read();
 
@@ -56,7 +50,6 @@ class ReadLine {
 
         if (value) {
           this.buf += value; 
-          console.log('Raw value:',value ); 
 
           if (this.buf.length > this.maxFrameLength) {
             console.warn("Buffer overflow, clearing buffer.");
@@ -76,6 +69,13 @@ class ReadLine {
         } else {
           await new Promise(resolve => setTimeout(resolve, 10));
         }
+        const elapsed = performance.now() - startTime;
+        console.warn("ReadLine timeout.",elapsed);
+
+        // if (elapsed > this.timeout) {
+          // console.warn("ReadLine timeout.",elapsed);
+          // return null;
+        // }
       } catch (err) {
         console.error("ReadLine error:", err);
         return null;
