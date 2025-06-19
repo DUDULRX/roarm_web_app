@@ -48,6 +48,7 @@ class ReadLine {
         }
 
         if (value && value.length > 0) {
+          console.log("value",performance.now(),value)
           const newBuf = new Uint8Array(this.buf.length + value.length);
           newBuf.set(this.buf);
           newBuf.set(value, this.buf.length);
