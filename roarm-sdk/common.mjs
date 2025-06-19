@@ -45,9 +45,13 @@ class ReadLine {
         if (done) {
           console.warn("Serial reader closed.");
           // return null;
+          reader.releaseLock();
+          break;
         }
 
-        if (value && value.length > 0) {
+        
+        // if (value && value.length > 0) {
+        if (value) {
           console.log("value",performance.now(),value)
           const newBuf = new Uint8Array(this.buf.length + value.length);
           newBuf.set(this.buf);
