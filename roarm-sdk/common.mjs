@@ -35,7 +35,7 @@ class ReadLine {
     const startTime = performance.now();
     // const reader = this.portHandler.reader;
     const textDecoder = new TextDecoderStream();
-    const readableStreamClosed = this.portHandler.readable.pipTo(textDecoder.writable);
+    const readableStreamClosed = this.portHandler.readable.pipeTo(textDecoder.writable);
     const reader = textDecoder.readable.getReader();
 
     if (!reader) throw new Error('PortHandler reader not initialized.');
