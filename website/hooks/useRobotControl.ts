@@ -34,7 +34,7 @@ export type UpdateJointsDegrees = (
   updates: { servoId: number; value: number }[]
 ) => Promise<void>;
 
-export const roarm = new Roarm({ roarm_type: "roarm_m3" });
+export const roarm = new Roarm({ roarm_type: "roarm_m3", baudrate: 115200});
 
 export function useRobotControl(initialJointDetails: JointDetails[]) {
   const [isConnected, setIsConnected] = useState(false);
