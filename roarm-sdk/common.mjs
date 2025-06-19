@@ -24,9 +24,9 @@ const JsonCmd = {
 class ReadLine {
   constructor(portHandler, timeout = 200) {
     this.portHandler = portHandler;
-    this.buf = new Uint8Array();
-    this.frameStart = '{'.charCodeAt(0);     // 123
-    this.frameEnd = [125, 13, 10];           // '}\r\n'
+    this.buf = '';
+    this.frameStart = '{';    
+    this.frameEnd = '}\r\n';         
     this.maxFrameLength = 512;
     this.timeout = timeout; // ms
   }
@@ -53,10 +53,8 @@ class ReadLine {
         // if (value && value.length > 0) {
         if (value) {
           console.log("value",performance.now(),new TextDecoder().decode(value))
-          const newBuf = new Uint8Array(this.buf.length + value.length);
-          newBuf.set(this.buf);
-          newBuf.set(value, this.buf.length);
-          this.buf = newBuf;
+          const data = new TextDecoder().decode(value);
+          this.buf += data;
           console.log("newBuf ",performance.now(),new TextDecoder().decode(this.buf))
 
 
