@@ -29,7 +29,6 @@ class ReadLine {
     this.frameEnd = "}\r\n";
     this.maxFrameLength = 512;
     this.timeout = timeout;                  // ms
-    this.decoder = new TextDecoder();        // UTF-8解码器
   }
 
   async readline() {
@@ -41,6 +40,12 @@ class ReadLine {
     }
 
     while (true) {
+      const elapsed = performance.now() - startTime;
+      if (elapsed > this.timeout) {
+        console.warn("ReadLine timeout.",elapsed);
+        return null;
+      }
+
       try {
         const { value, done } = await reader.read();
 
@@ -49,34 +54,25 @@ class ReadLine {
           return null;
         }
 
-        if (value && value.length > 0) {
-          // 解码成字符串并加入缓冲区
-          this.buf += this.decoder.decode(value, { stream: true });
+        if (value) {
+          this.buf += value; 
 
-          // 限制缓冲区最大长度
           if (this.buf.length > this.maxFrameLength) {
-            console.warn("Buffer overflow, resetting.");
+            console.warn("Buffer overflow, clearing buffer.");
             this.buf = "";
             continue;
           }
 
-          // 查找帧
           const endIdx = this.buf.indexOf(this.frameEnd);
           if (endIdx !== -1) {
             const startIdx = this.buf.lastIndexOf(this.frameStart, endIdx);
             if (startIdx !== -1 && startIdx < endIdx) {
               const frame = this.buf.slice(startIdx, endIdx + this.frameEnd.length);
-              this.buf = this.buf.slice(endIdx + this.frameEnd.length);
+              this.buf = this.buf.slice(endIdx + this.frameEnd.length); 
               return frame;
             }
           }
-        const elapsed = performance.now() - startTime;
-        if (elapsed > this.timeout) {
-          console.warn("ReadLine timeout.",elapsed);
-          return null;
-        }
         } else {
-          // 无数据小等待
           await new Promise(resolve => setTimeout(resolve, 10));
         }
       } catch (err) {
