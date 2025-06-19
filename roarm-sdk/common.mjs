@@ -27,7 +27,7 @@ class ReadLine {
     this.buf = "";                           // 字符串缓冲区
     this.frameStart = "{";
     this.frameEnd = "}\r\n";
-    this.maxFrameLength = 512;
+    this.maxFrameLength = 2048;
     this.timeout = timeout;                  // ms
   }
 
