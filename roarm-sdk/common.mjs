@@ -22,7 +22,7 @@ const JsonCmd = {
 };
 
 class ReadLine {
-  constructor(portHandler, timeout = 1000) {
+  constructor(portHandler, timeout = 2000) {
     this.portHandler = portHandler;         // PortHandler 实例
     this.buf = "";                           // 字符串缓冲区
     this.frameStart = "{";
