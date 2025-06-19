@@ -56,6 +56,7 @@ class ReadLine {
 
         if (value) {
           this.buf += value; 
+          console.log('Raw value:',value ); 
 
           if (this.buf.length > this.maxFrameLength) {
             console.warn("Buffer overflow, clearing buffer.");
@@ -104,7 +105,6 @@ class BaseController {
     try {
       const line = await this.rl.readline();
       if (!line) return null;
-      console.log('Raw line:', JSON.stringify(line)); 
       this.dataBuffer = JSON.parse(line);
       this.baseData = this.dataBuffer;
       this.rl.clearBuffer();
