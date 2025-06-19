@@ -22,13 +22,13 @@ const JsonCmd = {
 };
 
 class ReadLine {
-  constructor(portHandler, timeout = 2000) {
-    this.portHandler = portHandler;         // PortHandler 实例
-    this.buf = "";                           // 字符串缓冲区
-    this.frameStart = "{";
-    this.frameEnd = "}\r\n";
+  constructor(portHandler, timeout = 200) {
+    this.portHandler = portHandler;
+    this.buf = new Uint8Array();
+    this.frameStart = '{'.charCodeAt(0);     // 123
+    this.frameEnd = [125, 13, 10];           // '}\r\n'
     this.maxFrameLength = 512;
-    this.timeout = timeout;                  // ms
+    this.timeout = timeout; // ms
   }
 
   async readline() {
@@ -42,43 +42,50 @@ class ReadLine {
     while (true) {
       try {
         const { value, done } = await reader.read();
-
         if (done) {
           console.warn("Serial reader closed.");
-          return null;
+          // return null;
         }
 
-        if (value) {
-          this.buf += value; 
-          console.log("this.buf",this.buf)
+        if (value && value.length > 0) {
+          const newBuf = new Uint8Array(this.buf.length + value.length);
+          newBuf.set(this.buf);
+          newBuf.set(value, this.buf.length);
+          this.buf = newBuf;
 
-          // if (this.buf.length > this.maxFrameLength) {
-          //   console.warn("Buffer overflow, clearing buffer.");
-          //   // this.buf = "";
-          //   // continue;
-          //   this.buf = this.buf.slice(-this.maxFrameLength);
-          // }
+          if (this.buf.length > this.maxFrameLength) {
+            this.buf = this.buf.slice(-this.maxFrameLength);
+          }
 
-          const endIdx = this.buf.indexOf(this.frameEnd);
-          if (endIdx !== -1) {
-            const startIdx = this.buf.lastIndexOf(this.frameStart, endIdx);
-            if (startIdx !== -1 && startIdx < endIdx) {
-              const frame = this.buf.slice(startIdx, endIdx + this.frameEnd.length);
-              this.buf = this.buf.slice(endIdx + this.frameEnd.length); 
-              console.log("frame",frame)
-              // return frame;
+          let end = -1;
+          for (let i = 0; i <= this.buf.length - 3; i++) {
+            if (this.buf[i] === 125 && this.buf[i + 1] === 13 && this.buf[i + 2] === 10) {
+              end = i;
             }
           }
-        } else {
-          await new Promise(resolve => setTimeout(resolve, 10));
-        }
-        const elapsed = performance.now() - startTime;
-        console.log("ReadLine time.",elapsed);
 
-        // if (elapsed > this.timeout) {
-          // console.warn("ReadLine timeout.",elapsed);
+          if (end >= 0) {
+            let start = -1;
+            for (let i = end; i >= 0; i--) {
+              if (this.buf[i] === this.frameStart) {
+                start = i;
+                break;
+              }
+            }
+
+            if (start >= 0 && start < end) {
+              const frame = this.buf.slice(start, end + 3);
+              this.buf = this.buf.slice(end + 3);
+              console.log("new TextDecoder().decode(frame)",new TextDecoder().decode(frame))
+              // return new TextDecoder().decode(frame);
+            }
+          }
+        }
+
+        const elapsed = performance.now() - startTime;
+        if (elapsed > this.timeout) {
           // return null;
-        // }
+        }
       } catch (err) {
         console.error("ReadLine error:", err);
         return null;
@@ -87,7 +94,7 @@ class ReadLine {
   }
 
   clearBuffer() {
-    this.buf = "";
+    this.buf = new Uint8Array();
   }
 }
 
