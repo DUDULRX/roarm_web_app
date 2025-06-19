@@ -22,49 +22,46 @@ const JsonCmd = {
 };
 
 class ReadLine {
-  constructor(portHandler, timeout = 200) {
+  constructor(portHandler, timeout = 200) { // ms
     this.portHandler = portHandler;
-    this.buf = new Uint8Array();
-    this.frameStart = '{'.charCodeAt(0);     // 123
-    this.frameEnd = [125, 13, 10];           // '}\r\n'
+    this.buf = new Uint8Array(0);
+    this.frameStart = 123; // '{' 字节
+    this.frameEnd = new Uint8Array([125, 13, 10]); // '}\r\n'
     this.maxFrameLength = 512;
-    this.timeout = timeout; // ms
+    this.timeout = timeout;
   }
 
   async readline() {
     const startTime = performance.now();
     const reader = this.portHandler.reader;
-
-    if (!reader) {
-      throw new Error('PortHandler reader not initialized.');
-    }
+    if (!reader) throw new Error('PortHandler reader not initialized.');
 
     while (true) {
       try {
         const { value, done } = await reader.read();
         if (done) {
-          console.warn("Serial reader closed.");
+          console.warn('Serial reader closed.');
           // return null;
         }
 
         if (value && value.length > 0) {
-          const newBuf = new Uint8Array(this.buf.length + value.length);
-          newBuf.set(this.buf);
-          newBuf.set(value, this.buf.length);
-          this.buf = newBuf;
-
-          if (this.buf.length > this.maxFrameLength) {
-            this.buf = this.buf.slice(-this.maxFrameLength);
-          }
+          const combined = new Uint8Array(this.buf.length + value.length);
+          combined.set(this.buf);
+          combined.set(value, this.buf.length);
+          this.buf = combined;
 
           let end = -1;
-          for (let i = 0; i <= this.buf.length - 3; i++) {
-            if (this.buf[i] === 125 && this.buf[i + 1] === 13 && this.buf[i + 2] === 10) {
-              end = i;
+          for (let i = 0; i <= this.buf.length - this.frameEnd.length; i++) {
+            let matched = true;
+            for (let j = 0; j < this.frameEnd.length; j++) {
+              if (this.buf[i + j] !== this.frameEnd[j]) {
+                matched = false;
+                break;
+              }
             }
+            if (matched) end = i;
           }
-
-          if (end >= 0) {
+          if (end !== -1) {
             let start = -1;
             for (let i = end; i >= 0; i--) {
               if (this.buf[i] === this.frameStart) {
@@ -72,29 +69,34 @@ class ReadLine {
                 break;
               }
             }
-
-            if (start >= 0 && start < end) {
-              const frame = this.buf.slice(start, end + 3);
-              this.buf = this.buf.slice(end + 3);
-              console.log("new TextDecoder().decode(frame)",performance.now(),new TextDecoder().decode(frame))
+            if (start !== -1 && start < end) {
+              const frame = this.buf.slice(start, end + this.frameEnd.length);
+              this.buf = this.buf.slice(end + this.frameEnd.length);
+              console.log("frame", performance.now(), frame);
               // return new TextDecoder().decode(frame);
             }
           }
+
+          // 如果缓存过长，保留末尾部分避免溢出
+          if (this.buf.length > this.maxFrameLength) {
+            this.buf = this.buf.slice(this.buf.length - this.maxFrameLength);
+          }
+        } else {
+          await new Promise(r => setTimeout(r, 10));
         }
 
-        const elapsed = performance.now() - startTime;
-        if (elapsed > this.timeout) {
+        if (performance.now() - startTime > this.timeout) {
           // return null;
         }
-      } catch (err) {
-        console.error("ReadLine error:", err);
+      } catch (e) {
+        console.error('ReadLine error:', e);
         return null;
       }
     }
   }
 
   clearBuffer() {
-    this.buf = new Uint8Array();
+    this.buf = new Uint8Array(0);
   }
 }
 
