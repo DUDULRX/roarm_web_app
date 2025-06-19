@@ -53,6 +53,7 @@ class ReadLine {
         // if (value && value.length > 0) {
         if (value) {
           console.log("value",performance.now(),new TextDecoder().decode(value))
+          console.log("newBuf ",performance.now(),this.buf)
           const data = new TextDecoder().decode(value);
           this.buf += data;
           console.log("newBuf ",performance.now(),this.buf)
@@ -61,18 +62,18 @@ class ReadLine {
           if (this.buf.length > this.maxFrameLength) {
             this.buf = this.buf.slice(-this.maxFrameLength);
           }
-          console.log("this.buf ",performance.now(),this.buf)
+          // console.log("this.buf ",performance.now(),this.buf)
 
           let end = this.buf.indexOf(this.frameEnd);
 
           if (end !== -1) {
-            console.log("this.buf ",performance.now(),this.buf)
+            // console.log("this.buf ",performance.now(),this.buf)
             let start = this.buf.indexOf(this.frameEnd);
 
             if (start !== -1 && start < end) {
               const frame = this.buf.slice(start, end + 3);
               this.buf = this.buf.slice(end + 3);
-              console.log("frame",performance.now(),frame)
+              // console.log("frame",performance.now(),frame)
               // return frame;
             }
           }
