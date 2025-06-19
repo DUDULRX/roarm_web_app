@@ -432,7 +432,7 @@ async function write(command, method = null, serialPort = null, sock = null) {
         commandLog += i.toString(16).padStart(2, '0') + ' ';
       }
     }
-    console.debug('_write:', command);
+    console.debug('_write:', new TextEncoder().encode(command));
     const result = await serialPort.writePort(command);
 
     if (result !== command.length) {
