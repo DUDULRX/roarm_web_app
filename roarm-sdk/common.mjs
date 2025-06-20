@@ -398,12 +398,10 @@ class DataProcessor {
     };
     if (genre === JsonCmd.FEEDBACK_GET) {
       let validData = [data.x, data.y, data.z];
-      console.log('validData:', validData);
 
       if (this.type in handlers) {
         validData = handlers[this.type](validData, data);
       }
-      console.log('validData:', validData);
       return [validData];
     } else {
       return [data];

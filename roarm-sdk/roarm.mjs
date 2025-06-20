@@ -114,6 +114,8 @@ async connect() {
     if (try_count >= 10) return -1;
 
     const res = this.processReceived(data, genre);
+    console.log('res', res);
+
     if (res === null) return null;
     if (Array.isArray(res) && res.length === 1) return res[0];
     return res;
