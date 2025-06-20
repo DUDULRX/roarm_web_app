@@ -71,6 +71,7 @@ async connect() {
 }
 
   async _mesg(genre, ...args) {
+    const real_command = super._mesg(genre, ...args);
     return this._res(real_command, genre);
   }
 
