@@ -98,7 +98,7 @@ export function useRobotControl(initialJointDetails: JointDetails[]) {
               }
             }
             // Enable torque for revolute servos
-            await roarm.torque_set(1);
+            // await roarm.torque_set(1);
           
         } catch (error) {
           console.error(`Failed to initialize joint ${jointDetails[i].servoId}:`, error);
@@ -164,7 +164,7 @@ export function useRobotControl(initialJointDetails: JointDetails[]) {
             // Check if relativeValue is within the valid range (0-360 degrees)
             // if (relativeValue >= 0 && relativeValue <= 360) {
             if (!Number.isNaN(relativeValue)) {
-              await roarm.joint_angle_ctrl(servoId,Math.round(relativeValue),0,0);
+              // await roarm.joint_angle_ctrl(servoId,Math.round(relativeValue),0,0);
               newStates[jointIndex].realDegrees = relativeValue; // Update relative realDegrees
             }
               // } else {
@@ -228,7 +228,7 @@ export function useRobotControl(initialJointDetails: JointDetails[]) {
             anglesArray.length > 0 && 
             anglesArray.every(a => !isNaN(a))
           ) {
-            await roarm.joints_angle_ctrl(anglesArray, 0, 0);
+            // await roarm.joints_angle_ctrl(anglesArray, 0, 0);
           }
         } catch (error) {
           console.error("批量更新舵机角度失败:", error);
