@@ -66,6 +66,7 @@ class ReadLine {
           //   this.buf = this.buf.slice(-this.maxFrameLength);
           // }
           // console.log("this.buf ",performance.now(),this.buf)
+          console.log("this.buf.length ",performance.now(),this.buf.length)
 
           let end = this.buf.indexOf(this.frameEnd);
 
