@@ -53,11 +53,11 @@ class ReadLine {
         
         // if (value && value.length > 0) {
         if (value) {
-          console.log("value",performance.now(),this.decoder.decode(value))
-          console.log("1 ",performance.now(),this.buf)
           // const data = new TextDecoder().decode(value);
           // this.buf += data;
           const chunk = this.decoder.decode(value, { stream: true });
+          console.log("value",performance.now(),chunk)
+          console.log("1 ",performance.now(),this.buf)
           this.buf += chunk;
           console.log("2 ",performance.now(),this.buf)
 
@@ -75,8 +75,8 @@ class ReadLine {
             let start = this.buf.indexOf(this.frameStart);
 
             if (start !== -1 && start < end) {
-              const frame = this.buf.slice(start, end + 3);
-              this.buf = this.buf.slice(end + 3);
+              // const frame = this.buf.slice(start, end + 3);
+              // this.buf = this.buf.slice(end + 3);
               // console.log("frame",performance.now(),frame)
               // return frame;
             }
