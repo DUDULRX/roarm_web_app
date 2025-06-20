@@ -98,7 +98,7 @@ export function useRobotControl(initialJointDetails: JointDetails[]) {
               }
             }
             // Enable torque for revolute servos
-            // await roarm.torque_set(1);
+            roarm.torque_set(1);
           
         } catch (error) {
           console.error(`Failed to initialize joint ${jointDetails[i].servoId}:`, error);
@@ -121,7 +121,7 @@ export function useRobotControl(initialJointDetails: JointDetails[]) {
       // Disable torque for revolute servos and set wheel speed to 0 for continuous servos
       for (let i = 0; i < jointDetails.length; i++) {
         try {
-          await roarm.torque_set(0);
+          roarm.torque_set(0);
         } catch (error) {
           console.error(
             `Failed to reset joint ${jointDetails[i].servoId} during disconnect:`,
