@@ -91,8 +91,8 @@ export class CommandGenerator extends DataProcessor {
     }
 
     const switchDict = {
-      roarm_m2: value.subarray(3, 7),
-      roarm_m3: value.subarray(4, 10),
+      roarm_m2: value.slice(3, 7),
+      roarm_m3: value.slice(4, 10),
     };
 
     const radians = switchDict[this.type];
@@ -100,8 +100,7 @@ export class CommandGenerator extends DataProcessor {
       throw new Error(`Unsupported roarm_type: ${this.type}`);
     }
 
-    const radiansArray = Array.from(radians);
-    return radiansArray.map(radian => radian * 180 / Math.PI);
+    return radians.map(radian => radian * 180 / Math.PI);
   }
 
   gripper_mode_set(mode) {
