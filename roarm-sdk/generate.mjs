@@ -85,7 +85,6 @@ export class CommandGenerator extends DataProcessor {
 
   async joints_angle_get() {
     const value = await this.feedback_get();
-    console.log("value", value);
 
     if (!Array.isArray(value)) {
       throw new Error('feedback_get() did not return an array');
@@ -101,6 +100,8 @@ export class CommandGenerator extends DataProcessor {
       throw new Error(`Unsupported roarm_type: ${this.type}`);
     }
     console.log("radians", radians);
+    console.log("radians.map(radian => radian * 180 / Math.PI)", radians.map(radian => radian * 180 / Math.PI));
+
     return radians.map(radian => radian * 180 / Math.PI);
   }
 
