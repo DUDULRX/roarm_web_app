@@ -62,9 +62,9 @@ class ReadLine {
           console.log("2 ",performance.now(),this.buf)
 
 
-          if (this.buf.length > this.maxFrameLength) {
-            this.buf = this.buf.slice(-this.maxFrameLength);
-          }
+          // if (this.buf.length > this.maxFrameLength) {
+          //   this.buf = this.buf.slice(-this.maxFrameLength);
+          // }
           // console.log("this.buf ",performance.now(),this.buf)
 
           let end = this.buf.indexOf(this.frameEnd);
