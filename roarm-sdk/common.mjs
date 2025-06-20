@@ -53,7 +53,6 @@ class ReadLine {
         // if (value && value.length > 0) {
         if (value) {
           const data = this.decoder.decode(value, { stream: true });
-          console.log("value",performance.now(),data)
           this.buf += data;
 
           // if (this.buf.length > this.maxFrameLength) {
