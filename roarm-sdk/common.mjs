@@ -54,8 +54,10 @@ class ReadLine {
         if (value) {
           console.log("value",performance.now(),new TextDecoder().decode(value))
           console.log("1 ",performance.now(),this.buf)
-          const data = new TextDecoder().decode(value);
-          this.buf += data;
+          // const data = new TextDecoder().decode(value);
+          // this.buf += data;
+          const chunk = this.decoder.decode(value, { stream: true });
+          this.buf += chunk;
           console.log("2 ",performance.now(),this.buf)
 
 
