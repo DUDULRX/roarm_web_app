@@ -196,6 +196,7 @@ export class PortHandler {
     }
     
     if (this.port && this.isOpen) {
+      await this.port.setSignals({ dataTerminalReady: false, requestToSend: false });
       await this.port.close();
       this.isOpen = false;
     }
