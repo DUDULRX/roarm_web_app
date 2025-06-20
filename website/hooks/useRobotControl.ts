@@ -161,8 +161,8 @@ export function useRobotControl(initialJointDetails: JointDetails[]) {
           try {
             if (!Number.isNaN(value)) {
               roarm.joint_angle_ctrl(servoId,Math.round(value),0,0);
-              const angles = await roarm.joints_angle_get()
-              newStates[jointIndex].realDegrees = angles[jointIndex]; // Update relative realDegrees
+              // const angles = await roarm.joints_angle_get()
+              // newStates[jointIndex].realDegrees = angles[jointIndex]; // Update relative realDegrees
             }
           } catch (error) {
             console.error(
@@ -195,7 +195,7 @@ export function useRobotControl(initialJointDetails: JointDetails[]) {
 
       if (isConnected) {
         const anglesArray: number[] = [];
-        const angles = await roarm.joints_angle_get()
+        // const angles = await roarm.joints_angle_get()
 
         for (let servoId = 1; servoId <= 6; servoId++) {
           const jointIndex = newStates.findIndex(
@@ -205,7 +205,7 @@ export function useRobotControl(initialJointDetails: JointDetails[]) {
             const virtual = newStates[jointIndex].virtualDegrees || 0;
 
             anglesArray.push(Math.round(virtual));
-            newStates[jointIndex].realDegrees = angles[jointIndex];       
+            // newStates[jointIndex].realDegrees = angles[jointIndex];       
 
           } else {
             anglesArray.push(0);
