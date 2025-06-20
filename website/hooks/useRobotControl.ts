@@ -4,6 +4,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { Roarm } from "roarm-sdk";
+import { nan } from "zod";
 // import { JointDetails } from "@/components/RobotLoader"; // <-- IMPORT JointDetails type
 type JointDetails = {
   name: string;
@@ -162,9 +163,11 @@ export function useRobotControl(initialJointDetails: JointDetails[]) {
             const relativeValue = (initialPositions[jointIndex] || 0) + value; // Calculate relative position
             // Check if relativeValue is within the valid range (0-360 degrees)
             // if (relativeValue >= 0 && relativeValue <= 360) {
+            if (!Number.isNaN(relativeValue)) {
               await roarm.joint_angle_ctrl(servoId,Math.round(relativeValue),0,0);
               newStates[jointIndex].realDegrees = relativeValue; // Update relative realDegrees
-            // } else {
+            }
+              // } else {
             //   console.warn(
             //     `Relative value ${relativeValue} for servo ${servoId} is out of range (0-360). Skipping update.`
             //   );
@@ -220,8 +223,13 @@ export function useRobotControl(initialJointDetails: JointDetails[]) {
         }
 
         try {
-          console.log("写入角度数组:", anglesArray); // 形如 [12, 45, 88, 0, 50, 90]
-          await roarm.joints_angle_ctrl(anglesArray, 0, 0);
+          if (
+            Array.isArray(anglesArray) && 
+            anglesArray.length > 0 && 
+            anglesArray.every(a => !isNaN(a))
+          ) {
+            await roarm.joints_angle_ctrl(anglesArray, 0, 0);
+          }
         } catch (error) {
           console.error("批量更新舵机角度失败:", error);
         }
