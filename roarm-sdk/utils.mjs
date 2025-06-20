@@ -173,6 +173,7 @@ export class PortHandler {
         dataTerminalReady: false,
         requestToSend: false 
       });
+      await this.port.setSignals({ dataTerminalReady: false, requestToSend: false });
       this.reader = this.port.readable.getReader();
       this.writer = this.port.writable.getWriter();
       this.isOpen = true;
@@ -196,7 +197,6 @@ export class PortHandler {
     }
     
     if (this.port && this.isOpen) {
-      await this.port.setSignals({ dataTerminalReady: false, requestToSend: false });
       await this.port.close();
       this.isOpen = false;
     }
@@ -301,34 +301,5 @@ export class PortHandler {
     }
   }
   
-  setPacketTimeout(packetLength) {
-    this.packetStartTime = this.getCurrentTime();
-    this.packetTimeout = (this.txTimePerByte * packetLength) + (LATENCY_TIMER * 2.0) + 2.0;
-  }
-  
-  setPacketTimeoutMillis(msec) {
-    this.packetStartTime = this.getCurrentTime();
-    this.packetTimeout = msec;
-  }
-  
-  isPacketTimeout() {
-    if (this.getTimeSinceStart() > this.packetTimeout) {
-      this.packetTimeout = 0;
-      return true;
-    }
-    return false;
-  }
-  
-  getCurrentTime() {
-    return performance.now();
-  }
-  
-  getTimeSinceStart() {
-    const timeSince = this.getCurrentTime() - this.packetStartTime;
-    if (timeSince < 0.0) {
-      this.packetStartTime = this.getCurrentTime();
-    }
-    return timeSince;
-  }
 }
 
