@@ -85,24 +85,23 @@ export class CommandGenerator extends DataProcessor {
 
   async joints_angle_get() {
     const value = await this.feedback_get();
-    console.log('value', value);
 
-    if (!(value instanceof Uint8Array)) {
-      throw new Error('feedback_get() did not return a Uint8Array or Buffer');
+    if (!Array.isArray(value)) {
+      throw new Error('feedback_get() did not return an array');
     }
 
     const switchDict = {
-      roarm_m2: Uint8Array.prototype.slice.call(value, 3, 7),
-      roarm_m3: Uint8Array.prototype.slice.call(value, 4, 10),
+      roarm_m2: value.subarray(3, 7),
+      roarm_m3: value.subarray(4, 10),
     };
 
     const radians = switchDict[this.type];
-
     if (!radians) {
       throw new Error(`Unsupported roarm_type: ${this.type}`);
     }
 
-    return radians.map(radian => (radian * 180) / Math.PI);
+    const radiansArray = Array.from(radians);
+    return radiansArray.map(radian => radian * 180 / Math.PI);
   }
 
   gripper_mode_set(mode) {
