@@ -168,7 +168,11 @@ export class PortHandler {
     }
     
     try {
-      await this.port.open({ baudRate: this.baudrate });
+      await this.port.open({ 
+        baudRate: this.baudrate,  
+        dataTerminalReady: false,
+        requestToSend: false 
+      });
       this.reader = this.port.readable.getReader();
       this.writer = this.port.writable.getWriter();
       this.isOpen = true;
