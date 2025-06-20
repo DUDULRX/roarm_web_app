@@ -431,7 +431,7 @@ async function write(command, method = null, serialPort = null, sock = null) {
         commandLog += i.toString(16).padStart(2, '0') + ' ';
       }
     }
-    console.debug('_write:', new TextEncoder().encode(command));
+
     const result = await serialPort.writePort(command);
 
     if (result !== command.length) {
@@ -446,12 +446,12 @@ async function read(genre, serialPort, type, baseController) {
 
     if (!serialPort) throw new Error('serialPort required for read');
 
-      const encoder = new TextEncoder();
-      const requestData = encoder.encode(requestDataStr);
-      const written = await serialPort.writePort(requestData);
-      if (written !== requestData.length) {
-        throw new Error('writePort failed or incomplete write');
-      }
+    const encoder = new TextEncoder();
+    const requestData = encoder.encode(requestDataStr);
+    const written = await serialPort.writePort(requestData);
+    if (written !== requestData.length) {
+      throw new Error('writePort failed or incomplete write');
+    }
   }
   if(!baseController){
       baseController = new BaseController(type, serialPort);

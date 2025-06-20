@@ -99,8 +99,6 @@ export class CommandGenerator extends DataProcessor {
     if (!radians) {
       throw new Error(`Unsupported roarm_type: ${this.type}`);
     }
-    console.log("radians", radians);
-    console.log("radians.map(radian => radian * 180 / Math.PI)", radians.map(radian => radian * 180 / Math.PI));
 
     return radians.map(radian => radian * 180 / Math.PI);
   }
