@@ -195,13 +195,13 @@ export function useRobotControl(initialJointDetails: JointDetails[]) {
 
       if (isConnected) {
         const anglesArray: number[] = [];
+        const angles = await roarm.joints_angle_get()
 
         for (let servoId = 1; servoId <= 6; servoId++) {
           const jointIndex = newStates.findIndex(
             (state) => state.servoId === servoId
           );
           if (jointIndex !== -1) {
-            const angles = await roarm.joints_angle_get()
             const virtual = newStates[jointIndex].virtualDegrees || 0;
 
             anglesArray.push(Math.round(virtual));
