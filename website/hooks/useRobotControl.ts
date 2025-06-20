@@ -210,12 +210,18 @@ export function useRobotControl(initialJointDetails: JointDetails[]) {
             (state) => state.servoId === servoId
           );
           if (jointIndex !== -1) {
-            const base = initialPositions[jointIndex] || 0;
+            const angles = await roarm.joints_angle_get()
             const virtual = newStates[jointIndex].virtualDegrees || 0;
-            const relativeValue = base + virtual;
 
-            anglesArray.push(Math.round(relativeValue));
-            newStates[jointIndex].realDegrees = relativeValue;
+            anglesArray.push(Math.round(virtual));
+            newStates[jointIndex].realDegrees = angles[jointIndex];       
+
+            // const base = initialPositions[jointIndex] || 0;
+            // const virtual = newStates[jointIndex].virtualDegrees || 0;
+            // const relativeValue = base + virtual;
+
+            // anglesArray.push(Math.round(relativeValue));
+            // newStates[jointIndex].realDegrees = relativeValue;
           } else {
             anglesArray.push(0);
           }
