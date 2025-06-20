@@ -72,6 +72,7 @@ async connect() {
 
   async _mesg(genre, ...args) {
     const real_command = super._mesg(genre, ...args);
+    console.log('this._res(real_command, genre)', this._res(real_command, genre));
     return this._res(real_command, genre);
   }
 
@@ -116,7 +117,6 @@ async connect() {
     const res = this.processReceived(data, genre);
 
     if (res === null) return null;
-    console.log('res[0]', res[0]);
     if (Array.isArray(res) && res.length === 1) return res[0];
   }
 
