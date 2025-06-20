@@ -52,8 +52,6 @@ class ReadLine {
 
         // if (value && value.length > 0) {
         if (value) {
-          // const data = new TextDecoder().decode(value);
-          // this.buf += data;
           const data = this.decoder.decode(value, { stream: true });
           console.log("value",performance.now(),data)
           console.log("1 ",performance.now(),this.buf)
@@ -66,20 +64,20 @@ class ReadLine {
           // }
           // console.log("this.buf ",performance.now(),this.buf)
 
-          // let end = this.buf.indexOf(this.frameEnd);
+          let end = this.buf.indexOf(this.frameEnd);
 
-          // if (end !== -1) {
-          //   // console.log("this.buf ",performance.now(),this.buf)
-          //   let start = this.buf.indexOf(this.frameStart);
+          if (end !== -1) {
+            // console.log("this.buf ",performance.now(),this.buf)
+            let start = this.buf.indexOf(this.frameStart);
 
-          //   if (start !== -1 && start < end) {
-          //     // console.log("frame",performance.now(),frame)
-          //     // const frame = this.buf.slice(start, end + 3);
-          //     // this.buf = this.buf.slice(end + 3);
-          //     // console.log("frame",performance.now(),frame)
-          //     // return frame;
-          //   }
-          // }
+            if (start !== -1 && start < end) {
+              console.log("frame",performance.now(),frame)
+              const frame = this.buf.slice(start, end + 3);
+              this.buf = this.buf.slice(end + 3);
+              console.log("frame",performance.now(),frame)
+              // return frame;
+            }
+          }
         }
 
         const elapsed = performance.now() - startTime;
