@@ -159,20 +159,11 @@ export function useRobotControl(initialJointDetails: JointDetails[]) {
 
         if (isConnected) {
           try {
-            const relativeValue = (initialPositions[jointIndex] || 0) + value; // Calculate relative position
-            // Check if relativeValue is within the valid range (0-360 degrees)
-            // if (relativeValue >= 0 && relativeValue <= 360) {
-            if (!Number.isNaN(relativeValue)) {
-              roarm.joint_angle_ctrl(servoId,Math.round(relativeValue),0,0);
-              newStates[jointIndex].realDegrees = relativeValue; // Update relative realDegrees
+            if (!Number.isNaN(value)) {
+              roarm.joint_angle_ctrl(servoId,Math.round(value),0,0);
+              const angles = await roarm.joints_angle_get()
+              newStates[jointIndex].realDegrees = angles[jointIndex]; // Update relative realDegrees
             }
-              // } else {
-            //   console.warn(
-            //     `Relative value ${relativeValue} for servo ${servoId} is out of range (0-360). Skipping update.`
-            //   );
-              // Optionally update realDegrees to reflect the attempted value or keep it as is
-              // newStates[jointIndex].realDegrees = relativeValue; // Or keep the previous value
-            // }
           } catch (error) {
             console.error(
               `Failed to update servo degrees for joint with servoId ${servoId}:`,
@@ -216,12 +207,6 @@ export function useRobotControl(initialJointDetails: JointDetails[]) {
             anglesArray.push(Math.round(virtual));
             newStates[jointIndex].realDegrees = angles[jointIndex];       
 
-            // const base = initialPositions[jointIndex] || 0;
-            // const virtual = newStates[jointIndex].virtualDegrees || 0;
-            // const relativeValue = base + virtual;
-
-            // anglesArray.push(Math.round(relativeValue));
-            // newStates[jointIndex].realDegrees = relativeValue;
           } else {
             anglesArray.push(0);
           }
