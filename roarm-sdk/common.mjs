@@ -45,9 +45,9 @@ class ReadLine {
         const { value, done } = await reader.read();
         if (done) {
           console.warn("Serial reader closed.");
-          // return null;
           reader.releaseLock();
-          break;
+          return null;
+          // break;
         }
 
         // if (value && value.length > 0) {
@@ -67,25 +67,24 @@ class ReadLine {
           let end = this.buf.indexOf(this.frameEnd);
 
           if (end !== -1) {
-            // console.log("this.buf ",performance.now(),this.buf)
             let start = this.buf.indexOf(this.frameStart);
 
             if (start !== -1 && start < end) {
               const frame = this.buf.slice(start, end + 3);
               this.buf = this.buf.slice(end + 3);
               console.log("frame",performance.now(),frame)
-              // return frame;
+              return frame;
             }
           }
         }
 
         const elapsed = performance.now() - startTime;
         if (elapsed > this.timeout) {
-          // return null;
+          return null;
         }
       } catch (err) {
         console.error("ReadLine error:", err);
-        // return null;
+        return null;
       }
     }
   }
