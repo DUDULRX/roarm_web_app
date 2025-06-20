@@ -47,7 +47,7 @@ export class CommandGenerator extends DataProcessor {
     return this._mesg(JsonCmd.DYNAMIC_ADAPTATION_SET, mode, torques);
   }
 
-  feedback_get() {
+  async feedback_get() {
     return this._mesg(JsonCmd.FEEDBACK_GET);
   }
 
@@ -61,8 +61,8 @@ export class CommandGenerator extends DataProcessor {
     return this._mesg(JsonCmd.JOINTS_RADIAN_CTRL, radians, speed, acc);
   }
 
-  joints_radian_get() {
-    const value = this.feedback_get();
+  async joints_radian_get() {
+    const value = await this.feedback_get();
 
     const switchDict = {
       roarm_m2: Uint8Array.prototype.slice.call(value, 3, 7),
@@ -83,8 +83,8 @@ export class CommandGenerator extends DataProcessor {
     return this._mesg(JsonCmd.JOINTS_ANGLE_CTRL, angles, speed, acc);
   }
 
-  joints_angle_get() {
-    const value = this.feedback_get();
+  async joints_angle_get() {
+    const value = await this.feedback_get();
     console.log('value', value);
 
     if (!(value instanceof Uint8Array)) {
@@ -130,23 +130,23 @@ export class CommandGenerator extends DataProcessor {
     return 1;
   }
 
-  gripper_radian_get() {
+  async gripper_radian_get() {
     const switchDict = {
       roarm_m2: 6,
       roarm_m3: 9,
     };
     const gripper = switchDict[this.type];
-    const value = this.feedback_get();
+    const value = await this.feedback_get();
     return value[gripper];
   }
 
-  gripper_angle_get() {
+  async gripper_angle_get() {
     const switchDict = {
       roarm_m2: 6,
       roarm_m3: 9,
     };
     const gripper = switchDict[this.type];
-    const value = this.feedback_get();
+    const value = await this.feedback_get();
     return (value[gripper] * 180) / Math.PI;
   }
 
@@ -155,8 +155,8 @@ export class CommandGenerator extends DataProcessor {
     return this._mesg(JsonCmd.POSE_CTRL, pose);
   }
 
-  pose_get() {
-    const value = this.feedback_get();
+  async pose_get() {
+    const value = await this.feedback_get();
 
     if (!(value instanceof Uint8Array)) {
       throw new Error('feedback_get() did not return a Uint8Array');
