@@ -66,7 +66,6 @@ class ReadLine {
             if (start !== -1 && start < end) {
               const frame = this.buf.slice(start, end + 3);
               this.buf = this.buf.slice(end + 3);
-              console.log("frame ",performance.now(),frame)
               return frame;
             }
           }

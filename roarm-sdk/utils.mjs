@@ -170,15 +170,7 @@ export class PortHandler {
     try {
       await this.port.open({ 
         baudRate: this.baudrate,  
-        // dataTerminalReady: false,
-        // requestToSend: false 
       });
-      // await this.port.setSignals({ dataTerminalReady: false, requestToSend: false });
-      const signals = await this.port.getSignals();
-      console.log(`Clear To Send:       ${signals.clearToSend}`);
-      console.log(`Data Carrier Detect: ${signals.dataCarrierDetect}`);
-      console.log(`Data Set Ready:      ${signals.dataSetReady}`);
-      console.log(`Ring Indicator:      ${signals.ringIndicator}`);   
 
       // Turn on Data Terminal Ready (DTR) signal.
       await this.port.setSignals({ dataTerminalReady: true });
