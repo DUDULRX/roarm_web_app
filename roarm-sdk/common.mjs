@@ -29,6 +29,7 @@ class ReadLine {
     this.frameEnd = '}\r\n';         
     this.maxFrameLength = 512;
     this.timeout = timeout; // ms
+    this.decoder = new TextDecoder();
   }
 
   async readline() {
@@ -52,7 +53,7 @@ class ReadLine {
         
         // if (value && value.length > 0) {
         if (value) {
-          console.log("value",performance.now(),new TextDecoder().decode(value))
+          console.log("value",performance.now(),this.decoder.decode(value))
           console.log("1 ",performance.now(),this.buf)
           // const data = new TextDecoder().decode(value);
           // this.buf += data;
