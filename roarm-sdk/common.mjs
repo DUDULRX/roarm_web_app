@@ -54,10 +54,7 @@ class ReadLine {
         if (value) {
           const data = this.decoder.decode(value, { stream: true });
           console.log("value",performance.now(),data)
-          console.log("1 ",performance.now(),this.buf)
           this.buf += data;
-          console.log("2 ",performance.now(),this.buf)
-
 
           // if (this.buf.length > this.maxFrameLength) {
           //   this.buf = this.buf.slice(-this.maxFrameLength);
@@ -72,7 +69,6 @@ class ReadLine {
             if (start !== -1 && start < end) {
               const frame = this.buf.slice(start, end + 3);
               this.buf = this.buf.slice(end + 3);
-              console.log("frame",performance.now(),frame)
               return frame;
             }
           }
@@ -111,7 +107,6 @@ class BaseController {
     try {
       const line = await this.rl.readline();
       if (!line) return null;
-      console.log("line",line)
       this.dataBuffer = JSON.parse(line);
       this.baseData = this.dataBuffer;
       this.rl.clearBuffer();
@@ -403,9 +398,12 @@ class DataProcessor {
     };
     if (genre === JsonCmd.FEEDBACK_GET) {
       let validData = [data.x, data.y, data.z];
+      console.log('validData:', validData);
+
       if (this.type in handlers) {
         validData = handlers[this.type](validData, data);
       }
+      console.log('validData:', validData);
       return [validData];
     } else {
       return [data];
