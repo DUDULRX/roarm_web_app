@@ -1,5 +1,5 @@
 import { CommandGenerator } from './generate.mjs';
-import { write, read, JsonCmd } from './common.mjs';
+import { write, read, JsonCmd, BaseController} from './common.mjs';
 import { calibrationParameters, PortHandler } from './utils.mjs';
 import fetch from 'node-fetch';
 // // import fs from 'fs/promises';
@@ -22,6 +22,7 @@ export class Roarm extends CommandGenerator {
     this.baudrate = baudrate;
     this.timeout = timeout;
     this.stop_flag = false;
+    this.baseController = null;
   }
 
 async connect() {
@@ -51,6 +52,8 @@ async connect() {
       this.portHandler = null;
       throw new Error(`Failed to open port at baudrate ${this.baudRate}.`);
     }
+    this.baseController = new BaseController(this.type, this.portHandler);
+    
 
   }catch (err) {
     console.error("Error during connection:", err);
@@ -97,7 +100,7 @@ async connect() {
           if (genre !== JsonCmd.FEEDBACK_GET) {
             data = real_command;
           } else {
-            data = await read(genre, this.portHandler, this.type);
+            data = await read(genre, this.portHandler, this.type, this.baseController);
           }
         } catch (e) {
           console.warn('Serial read/write error:', e);
