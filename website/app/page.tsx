@@ -11,8 +11,8 @@ export default function Home() {
       name: "roarm_m3",
       image: "/roarm_m3.jpg",
       playLink: "/play/roarm_m3",
-      assembleLink:
-        "https://github.com/dudulrx/lerobot/blob/main/examples/12_use_roarm_m3.md",
+      wikiLink:
+        "https://www.waveshare.net/wiki/RoArm-M3",
     },    
   ];
 
@@ -23,7 +23,7 @@ export default function Home() {
           {" "}
           {/* Ensure text-center container takes full width */}
           <h1 className="text-6xl mb-4 font-bold">roarm_m3</h1>
-          <p className="text-2xl mb-8">Open source, low-cost AI robots 🤖</p>
+          <p className="text-2xl mb-8">Open source, low-cost robots 🤖</p>
           {/* Changed from grid to flex for flexible centering */}
           <div className="container mx-auto p-4 flex flex-wrap justify-center gap-8 relative z-10">
             {robots.map((robot) => (
@@ -52,10 +52,10 @@ export default function Home() {
                     Play
                   </Link>
                   <Link
-                    href={robot.assembleLink}
+                    href={robot.wikiLink}
                     className="bg-black text-white w-1/2 py-2 text-center hover:bg-zinc-800 border-t border-zinc-500"
                   >
-                    Assemble
+                    Wiki
                   </Link>
                 </div>
               </div>
