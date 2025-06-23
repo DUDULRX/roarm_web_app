@@ -161,8 +161,8 @@ export function useRobotControl(initialJointDetails: JointDetails[]) {
           try {
             if (!Number.isNaN(value)) {
               roarm.joint_angle_ctrl(servoId,Math.round(value),0,0);
-              // const angles = await roarm.joints_angle_get()
-              // newStates[jointIndex].realDegrees = angles[jointIndex]; // Update relative realDegrees
+              const angles = await roarm.joints_angle_get()
+              newStates[jointIndex].realDegrees = angles[jointIndex]; // Update relative realDegrees
             }
           } catch (error) {
             console.error(
