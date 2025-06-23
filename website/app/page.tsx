@@ -109,7 +109,7 @@ export default function Home() {
             <span className="sr-only">WeChat</span>
           </Link>
           <Link
-            href="https://github.com/timqian/bambot"
+            href="https://github.com/waveshareteam/roarm_web_app.git"
             target="_blank"
             rel="noopener noreferrer"
             className="text-green-600 hover:text-green-700 transition-colors"
