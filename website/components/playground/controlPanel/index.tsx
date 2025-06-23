@@ -5,11 +5,8 @@ import {
   JointState,
   UpdateJointDegrees,
   UpdateJointsDegrees,
-  UpdateJointSpeed,
-  UpdateJointsSpeed, // Add UpdateJointsSpeed type
 } from "../../../hooks/useRobotControl"; // Adjusted import path
 import { RevoluteJointsTable } from "./RevoluteJointsTable"; // Updated import path
-import { ContinuousJointsTable } from "./ContinuousJointsTable"; // Updated import path
 import { RobotConfig } from "@/config/robotConfig";
 
 // const baudRate = 1000000; // Define baud rate for serial communication - Keep if needed elsewhere, remove if only for UI
@@ -19,8 +16,6 @@ type ControlPanelProps = {
   jointStates: JointState[]; // Use JointState type from useRobotControl
   updateJointDegrees: UpdateJointDegrees; // Updated type
   updateJointsDegrees: UpdateJointsDegrees; // Updated type
-  updateJointSpeed: UpdateJointSpeed; // Updated type
-  updateJointsSpeed: UpdateJointsSpeed; // Add updateJointsSpeed
 
   isConnected: boolean;
 
@@ -34,8 +29,6 @@ export function ControlPanel({
   jointStates,
   updateJointDegrees,
   updateJointsDegrees,
-  updateJointSpeed,
-  updateJointsSpeed, // Pass updateJointsSpeed
   isConnected,
   connectRobot,
   disconnectRobot,
@@ -68,9 +61,6 @@ export function ControlPanel({
   // Separate jointStates into revolute and continuous categories
   const revoluteJoints = jointStates.filter(
     (state) => state.jointType === "revolute"
-  );
-  const continuousJoints = jointStates.filter(
-    (state) => state.jointType === "continuous"
   );
 
   if (isCollapsed) {
@@ -107,15 +97,6 @@ export function ControlPanel({
           updateJointsDegrees={updateJointsDegrees}
           keyboardControlMap={keyboardControlMap}
           compoundMovements={compoundMovements}
-        />
-      )}
-
-      {/* Continuous Joints Table */}
-      {continuousJoints.length > 0 && (
-        <ContinuousJointsTable
-          joints={continuousJoints}
-          updateJointSpeed={updateJointSpeed}
-          updateJointsSpeed={updateJointsSpeed} // Pass updateJointsSpeed to ContinuousJointsTable
         />
       )}
 
