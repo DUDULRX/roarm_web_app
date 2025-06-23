@@ -11,7 +11,7 @@ export default function Header() {
         </Link>
         <a
           className="github-button"
-          href="https://github.com/timqian/bambot"
+          href="https://github.com/waveshareteam/roarm_web_app"
           // data-color-scheme="no-preference: light; light: light; dark: dark;"
           data-size="large"
           data-show-count="true"
