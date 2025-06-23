@@ -23,6 +23,7 @@ export class Roarm extends CommandGenerator {
     this.timeout = timeout;
     this.stop_flag = false;
     this.baseController = null;
+    this.decoder = new TextEncoder();
   }
 
 async connect() {
@@ -98,7 +99,7 @@ async connect() {
         try {
           await write(real_command, null, this.portHandler, null);
           if (genre !== JsonCmd.FEEDBACK_GET) {
-            data = JSON.stringify(real_command);
+            data = JSON.parse(this.decoder(real_command));
           } else {
             data = await read(genre, this.portHandler, this.type, this.baseController);
           }
