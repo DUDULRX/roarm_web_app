@@ -364,7 +364,7 @@ class DataProcessor {
     if (commandData.length > 0 && genre in switchDict) {
       command = switchDict[genre](this.type, command, commandData);
     }
-    console.log(command);
+    console.debug('_write:', command);
     return this.flatten(command);
   }
 
@@ -458,7 +458,6 @@ async function read(genre, serialPort, type, baseController) {
 
   const data = await baseController.feedbackData();
   if (data) {
-    console.debug('_read:', data);
     return data;
   }
   return null;

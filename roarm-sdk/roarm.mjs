@@ -99,7 +99,7 @@ async connect() {
         try {
           await write(real_command, null, this.portHandler, null);
           if (genre !== JsonCmd.FEEDBACK_GET) {
-            data = JSON.parse(this.decoder(real_command));
+            data = JSON.parse(this.decoder.decode(real_command));
           } else {
             data = await read(genre, this.portHandler, this.type, this.baseController);
           }
