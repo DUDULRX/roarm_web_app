@@ -79,10 +79,10 @@ export function ControlPanel({
   }
 
   return (
-    <div className="absolute bottom-5 inset-x-2 sm:left-5 sm:right-auto max-w-full left-5 bg-zinc-900 bg-opacity-80 text-white p-4 rounded-lg max-h-[90vh] overflow-y-auto z-50 text-sm">
-      <h3 className="mt-0 mb-4 border-b border-zinc-600 pb-1 font-bold text-base flex justify-between items-center flex-wrap gap-2">
+    <div className="absolute bottom-5 left-5 bg-zinc-900 bg-opacity-80 text-white p-4 rounded-lg max-h-[90vh] overflow-y-auto z-50 text-sm">
+      <h3 className="mt-0 mb-4 border-b border-zinc-600 pb-1 font-bold text-base flex justify-between items-center">
         <span>Controls</span>
-        <div className="flex items-center gap-2">
+        <div>
           <span>Direction</span>
           </div>
           <ToggleButton isForward={isForward} onToggle={setIsForward} />
