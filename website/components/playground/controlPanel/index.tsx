@@ -6,7 +6,8 @@ import {
   UpdateJointDegrees,
   UpdateJointsDegrees,
 } from "../../../hooks/useRobotControl"; // Adjusted import path
-import { RevoluteJointsTable } from "./RevoluteJointsTable"; // Updated import path
+import { RevoluteJointsTable, controlDirection  } from "./RevoluteJointsTable"; // Updated import path
+import ToggleButton from "../ToggleButton";
 import { RobotConfig } from "@/config/robotConfig";
 
 // const baudRate = 1000000; // Define baud rate for serial communication - Keep if needed elsewhere, remove if only for UI
@@ -22,7 +23,7 @@ type ControlPanelProps = {
   connectRobot: () => void;
   disconnectRobot: () => void;
   keyboardControlMap: RobotConfig["keyboardControlMap"]; // New prop for keyboard control
-  compoundMovements?: RobotConfig["compoundMovements"]; // Use type from robotConfig
+  CoordinateControls?: RobotConfig["CoordinateControls"]; // Use type from robotConfig
 };
 
 export function ControlPanel({
@@ -33,8 +34,9 @@ export function ControlPanel({
   connectRobot,
   disconnectRobot,
   keyboardControlMap, // Destructure new prop
-  compoundMovements, // Destructure new prop
+  CoordinateControls, // Destructure new prop
 }: ControlPanelProps) {
+  const [isForward, setIsForward] = useState(true);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [connectionStatus, setConnectionStatus] = useState<
     "idle" | "connecting" | "disconnecting"
@@ -79,7 +81,11 @@ export function ControlPanel({
   return (
     <div className="absolute bottom-5 left-5 bg-zinc-900 bg-opacity-80 text-white p-4 rounded-lg max-h-[90vh] overflow-y-auto z-50 text-sm">
       <h3 className="mt-0 mb-4 border-b border-zinc-600 pb-1 font-bold text-base flex justify-between items-center">
-        <span>Joint Controls</span>
+        <span>Controls</span>
+        <div>
+          <span>Direction</span>
+          </div>
+          <ToggleButton isForward={isForward} onToggle={setIsForward} />
         <button
           onClick={() => setIsCollapsed(true)}
           className="ml-2 text-xl hover:bg-zinc-800 px-2 rounded-full"
@@ -88,7 +94,6 @@ export function ControlPanel({
           ×
         </button>
       </h3>
-
       {/* Revolute Joints Table */}
       {revoluteJoints.length > 0 && (
         <RevoluteJointsTable
@@ -96,7 +101,8 @@ export function ControlPanel({
           updateJointDegrees={updateJointDegrees}
           updateJointsDegrees={updateJointsDegrees}
           keyboardControlMap={keyboardControlMap}
-          compoundMovements={compoundMovements}
+          CoordinateControls={CoordinateControls}
+          isReverse={!isForward}
         />
       )}
 

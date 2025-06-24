@@ -11,7 +11,6 @@ import { ControlPanel } from "./controlPanel/index";
 import {
   JointState,
   useRobotControl,
-  UpdateJointsSpeed,
 } from "@/hooks/useRobotControl";
 import { Canvas } from "@react-three/fiber";
 import { degreesToRadians } from "@/lib/utils";
@@ -178,7 +177,7 @@ export default function RobotLoader({ robotName }: RobotLoaderProps) {
     camera,
     keyboardControlMap,
     jointNameIdMap,
-    compoundMovements,
+    CoordinateControls,
     systemPrompt, // <-- Add this line
   } = config; // Extract compoundMovements and systemPrompt
 
@@ -187,11 +186,9 @@ export default function RobotLoader({ robotName }: RobotLoaderProps) {
     connectRobot,
     disconnectRobot,
     jointStates,
-    updateJointSpeed,
     setJointDetails: updateJointDetails,
     updateJointDegrees,
     updateJointsDegrees,
-    updateJointsSpeed, // Add updateJointsSpeed
   } = useRobotControl(jointDetails);
 
   useEffect(() => {
@@ -200,7 +197,7 @@ export default function RobotLoader({ robotName }: RobotLoaderProps) {
 
   // Expose compoundMovements globally for ControlPanel to access
   if (typeof window !== "undefined") {
-    (window as any).bambotCompoundMovements = config.compoundMovements;
+    (window as any).bambotCompoundMovements = config.CoordinateControls;
   }
 
   return (
@@ -227,16 +224,14 @@ export default function RobotLoader({ robotName }: RobotLoaderProps) {
         </Suspense>
       </Canvas>
       <ControlPanel
-        updateJointsSpeed={updateJointsSpeed}
         jointStates={jointStates}
         updateJointDegrees={updateJointDegrees}
         updateJointsDegrees={updateJointsDegrees}
-        updateJointSpeed={updateJointSpeed}
         isConnected={isConnected}
         connectRobot={connectRobot}
         disconnectRobot={disconnectRobot}
         keyboardControlMap={keyboardControlMap}
-        compoundMovements={compoundMovements}
+        CoordinateControls={CoordinateControls}
       />
       <ChatControl robotName={robotName} systemPrompt={systemPrompt} />
     </>

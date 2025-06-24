@@ -7,7 +7,7 @@ import {
 } from "../../../hooks/useRobotControl";
 import { radiansToDegrees,degreesToRadians } from "../../../lib/utils";
 import { RobotConfig } from "@/config/robotConfig";
-import { roarm_m3 } from "@/config/roarm_solver"; 
+import { roarm_m3 } from "@/config/roarmSolver"; 
 import { StepBack } from "lucide-react";
 
 type RevoluteJointsTableProps = {
@@ -15,7 +15,8 @@ type RevoluteJointsTableProps = {
   updateJointDegrees: UpdateJointDegrees;
   updateJointsDegrees: UpdateJointsDegrees;
   keyboardControlMap: RobotConfig["keyboardControlMap"];
-  compoundMovements?: RobotConfig["compoundMovements"]; // Use type from robotConfig
+  CoordinateControls?: RobotConfig["CoordinateControls"]; // Use type from robotConfig
+  isReverse: boolean;
 };
 
 // Define constants for interval and step size
@@ -33,12 +34,21 @@ const formatRealDegrees = (degrees?: number | "N/A" | "error") => {
   return degrees === "N/A" ? "/" : `${degrees?.toFixed(1)}°`;
 };
 
+export function controlDirection(isForward: boolean) {
+  if (isForward) {
+    console.log('correct');
+  } else {
+    console.log('reverse');
+  }
+}
+
 export function RevoluteJointsTable({
   joints,
   updateJointDegrees,
   updateJointsDegrees,
   keyboardControlMap,
-  compoundMovements,
+  CoordinateControls,
+  isReverse,
 }: RevoluteJointsTableProps) {
   const [pressedKeys, setPressedKeys] = useState<Set<string>>(new Set());
   // Refs to hold the latest values needed inside the interval callback
@@ -101,7 +111,7 @@ export function RevoluteJointsTable({
       const currentJoints = jointsRef.current;
       const currentControlMap = keyboardControlMapRef.current || {};
       const currentPressedKeys = pressedKeys;
-      const currentCompoundMovements = compoundMovements || [];
+      const currentCoordinateControls = CoordinateControls || [];
 
       let updates: { servoId: number; value: number }[] = [];
 
@@ -112,7 +122,7 @@ export function RevoluteJointsTable({
         .map((joint) => {
           const currentDegrees = joint.virtualDegrees || 0;
           const increaseKey = currentControlMap[joint.servoId!]?.[0];
-          const isReverse = currentPressedKeys.has("r");
+          // const isReverse = currentPressedKeys.has("r");
 
           if (increaseKey && currentPressedKeys.has(increaseKey)) {
             let newValue = currentDegrees + (isReverse ? -KEY_UPDATE_STEP_DEGREES : KEY_UPDATE_STEP_DEGREES);
@@ -127,6 +137,7 @@ export function RevoluteJointsTable({
           return null;
         })
         .filter((u) => u !== null) as { servoId: number; value: number }[];
+
 
       const updatesMap = new Map<number, number>();
       updates.forEach((u) => updatesMap.set(u.servoId, u.value));
@@ -160,11 +171,10 @@ export function RevoluteJointsTable({
       let nextPose = [...currPoseRef.current];
       let poseChanged = false;
 
-      currentCompoundMovements.forEach((cm) => {
+      currentCoordinateControls.forEach((cm) => {
         if (!cm || !cm.name) return;
         if (cm.name.includes("X") || cm.name.includes("Y") || cm.name.includes("Z")) {
           const keyPressed = currentPressedKeys.has(cm.keys[0]);
-          const isReverse = currentPressedKeys.has("r");
           if (!keyPressed) return;
 
           const delta = isReverse ? -0.2 : 0.2;
@@ -194,10 +204,11 @@ export function RevoluteJointsTable({
         nextPose[1],
         nextPose[2],
         currPoseRef.current[3],
-        currPoseRef.current[4]
+        currPoseRef.current[4],
+        hand_joint_rad
       );
 
-      const ikUpdates = currentJoints
+      updates = currentJoints
         .map((joint, idx) => {
           const hasIk = idx < ikResults.length;
           const targetRad = hasIk
@@ -216,11 +227,9 @@ export function RevoluteJointsTable({
         })
         .filter(Boolean) as { servoId: number; value: number }[];
 
-      if (ikUpdates.length > 0) {
-        updateJointsDegreesRef.current(ikUpdates);
-      } else if (updates.length > 0) {
-        updateJointsDegreesRef.current(updates); // 单独关节更新
-      }
+      if (updates.length > 0) {
+        updateJointsDegreesRef.current(updates);
+      } 
     };
 
     if (pressedKeys.size > 0) {
@@ -256,7 +265,7 @@ export function RevoluteJointsTable({
         <thead>
           {/* ... existing table head ... */}
           <tr>
-            <th className="border-b border-gray-600 pb-1 pr-2">Joint</th>
+            <th className="border-b border-gray-600 pb-1 pr-2">Joint Controls</th>
             <th className="border-b border-gray-600 pb-1 text-center pl-2">
               Angle
             </th>
@@ -353,12 +362,12 @@ export function RevoluteJointsTable({
         </tbody>
       </table>
       {/* Display compoundMovements if present */}
-      {compoundMovements && compoundMovements.length > 0 && (
+      {CoordinateControls && CoordinateControls.length > 0 && (
         <div className="mt-4">
-          <div className="font-bold mb-2">Compound Movements</div>
+          <div className="font-bold mb-2">Coordinate Controls</div>
           <table className="table-auto w-full text-left text-sm">
             <tbody>
-              {compoundMovements.map((cm, idx) => {
+              {CoordinateControls.map((cm, idx) => {
                 const decreaseKey = cm.keys[1];
                 const increaseKey = cm.keys[0];
                 const isDecreaseActive =

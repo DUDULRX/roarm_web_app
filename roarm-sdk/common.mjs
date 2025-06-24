@@ -1,4 +1,3 @@
-// base-controller.mjs
 const JsonCmd = {
   ECHO_SET: 605,
   MIDDLE_SET: 502,
