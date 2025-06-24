@@ -130,7 +130,7 @@ export function ChatControl({
 
   if (isCollapsed) {
     return (
-      <div className="absolute bottom-5 left-5 z-50">
+      <div className="absolute bottom-5 right-5 z-50">
         <button
           onClick={() => setIsCollapsed(false)}
           className="bg-gray-700 hover:bg-gray-600 text-white text-sm px-3 py-1.5 rounded"
