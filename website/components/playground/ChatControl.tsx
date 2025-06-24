@@ -21,6 +21,7 @@ export function ChatControl({
   systemPrompt: configSystemPrompt,
 }: ChatControlProps) {
   const [input, setInput] = useState("");
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const [messages, setMessages] = useState<{ sender: string; text: string }[]>(
     []
   );
@@ -127,7 +128,19 @@ export function ChatControl({
     }
   };
 
-  return (
+  if (isCollapsed) {
+    return (
+      <div className="absolute bottom-5 left-5 z-50">
+        <button
+          onClick={() => setIsCollapsed(false)}
+          className="bg-gray-700 hover:bg-gray-600 text-white text-sm px-3 py-1.5 rounded"
+        >
+          Show AI Controls
+        </button>
+      </div>
+    );
+  } 
+  return (   
     <>
       <div className="fixed bottom-5 right-5 bg-zinc-900 bg-opacity-80 text-white p-4 rounded-lg shadow-lg w-80 z-50">
         <h4 className="border-b border-zinc-600 pb-2 font-bold mb-2 flex items-center justify-between">
@@ -138,6 +151,13 @@ export function ChatControl({
           >
             Settings
           </button>
+        <button
+          onClick={() => setIsCollapsed(true)}
+          className="ml-2 text-xl hover:bg-zinc-800 px-2 rounded-full"
+          title="Collapse"
+        >
+          ×
+        </button>          
         </h4>
         <div className="mb-2 max-h-[60vh] overflow-y-auto">
           {messages.map((msg, idx) => (
