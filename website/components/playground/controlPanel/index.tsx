@@ -17,15 +17,13 @@ type ControlPanelProps = {
   jointStates: JointState[]; // Use JointState type from useRobotControl
   updateJointDegrees: UpdateJointDegrees; // Updated type
   updateJointsDegrees: UpdateJointsDegrees; // Updated type
-
   isConnected: boolean;
-
+  robotName: string; 
   connectRobot: () => void;
   disconnectRobot: () => void;
   getfeedback: () => void; 
   keyboardControlMap: RobotConfig["keyboardControlMap"]; // New prop for keyboard control
   CoordinateControls?: RobotConfig["CoordinateControls"]; // Use type from robotConfig
-  robotName: string;
 };
 
 export function ControlPanel({
@@ -33,12 +31,12 @@ export function ControlPanel({
   updateJointDegrees,
   updateJointsDegrees,
   isConnected,
+  robotName,
   connectRobot,
   disconnectRobot,
   getfeedback,
   keyboardControlMap, // Destructure new prop
   CoordinateControls, // Destructure new prop
-  robotName,
 }: ControlPanelProps) {
   const [isForward, setIsForward] = useState(true);
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -142,14 +140,14 @@ export function ControlPanel({
         </button>
 
       {/* 新增按钮：仅当已连接时显示 */}
-      {isConnected && (
-        <button
-          onClick={updatefeedback} // 绑定你的更新关节角度函数
-          className="bg-green-600 hover:bg-green-500 text-white text-sm px-3 py-1.5 rounded w-full"
-        >
-          Update Joint Angles
-        </button>
-      )}       
+        {isConnected && (
+          <button
+            onClick={updatefeedback}
+            className="bg-blue-500 hover:bg-blue-400 text-white text-sm px-3 py-1.5 rounded w-full"
+          >
+            Update Joint Angles
+          </button>
+        )}
       </div>
     </div>
   );

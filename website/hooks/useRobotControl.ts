@@ -3,22 +3,8 @@
  */
 
 import { useState, useCallback, useEffect } from "react";
-import { Roarm } from "roarm-sdk";
 import { nan } from "zod";
-
-let roarmInstance: Roarm | null = null;
-
-export function initRoarm(roarm_type: string) {
-  roarmInstance = new Roarm({ roarm_type, baudrate: 115200 });
-  return roarmInstance;
-}
-
-export function getRoarm(): Roarm | null {
-  return roarmInstance;
-}
-
-export const roarm = new Roarm({ roarm_type: "roarm_m3", baudrate: 115200 });
-// export const roarm = getRoarm();
+import { Roarm } from "roarm-sdk";
 
 // import { JointDetails } from "@/components/RobotLoader"; // <-- IMPORT JointDetails type
 type JointDetails = {
@@ -50,7 +36,10 @@ export type UpdateJointsDegrees = (
   updates: { servoId: number; value: number }[]
 ) => Promise<void>;
 
-export function useRobotControl(initialJointDetails: JointDetails[]) {
+export function useRobotControl(
+  initialJointDetails: JointDetails[],
+  roarm: Roarm | null
+) {
   const [isConnected, setIsConnected] = useState(false);
   const [jointDetails, setJointDetails] = useState(initialJointDetails);
 
@@ -204,8 +193,8 @@ export function useRobotControl(initialJointDetails: JointDetails[]) {
           try {
             if (!Number.isNaN(value)) {
               roarm.joint_angle_ctrl(servoId,Math.round(value),0,0);
-              const angles = await roarm.joints_angle_get()
-              newStates[jointIndex].realDegrees = angles[jointIndex]; // Update relative realDegrees
+              // const angles = await roarm.joints_angle_get()
+              // newStates[jointIndex].realDegrees = angles[jointIndex]; // Update relative realDegrees
             }
           } catch (error) {
             console.error(
@@ -238,7 +227,7 @@ export function useRobotControl(initialJointDetails: JointDetails[]) {
 
       if (isConnected) {
         const anglesArray: number[] = [];
-        const angles = await roarm.joints_angle_get()
+        // const angles = await roarm.joints_angle_get()
 
         for (let servoId = 1; servoId <= 6; servoId++) {
           const jointIndex = newStates.findIndex(
@@ -248,7 +237,7 @@ export function useRobotControl(initialJointDetails: JointDetails[]) {
             const virtual = newStates[jointIndex].virtualDegrees || 0;
 
             anglesArray.push(Math.round(virtual));
-            newStates[jointIndex].realDegrees = angles[jointIndex];       
+            // newStates[jointIndex].realDegrees = angles[jointIndex];       
 
           } else {
             anglesArray.push(0);

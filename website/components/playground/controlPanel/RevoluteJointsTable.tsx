@@ -4,7 +4,6 @@ import {
   JointState,
   UpdateJointDegrees,
   UpdateJointsDegrees,
-  initRoarm,
 } from "../../../hooks/useRobotControl";
 import { radiansToDegrees,degreesToRadians } from "../../../lib/utils";
 import { RobotConfig } from "@/config/robotConfig";
@@ -60,7 +59,6 @@ export function RevoluteJointsTable({
   const keyboardControlMapRef = useRef(keyboardControlMap);
  // Initial pose
   
-  initRoarm(robotName);
   // Update refs whenever the props change
   useEffect(() => {
     jointsRef.current = joints;
