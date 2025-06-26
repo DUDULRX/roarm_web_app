@@ -128,6 +128,14 @@ export function ChatControl({
     }
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  if (e.key === "Enter") {
+    e.preventDefault();   
+    handleSend();
+  }
+};
+
+
   if (isCollapsed) {
     return (
       <div className="absolute bottom-5 right-5 z-50">
@@ -201,7 +209,8 @@ export function ChatControl({
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              onKeyPress={handleKeyPress}
+              // onKeyPress={handleKeyPress}
+              onKeyDown={handleKeyDown}
               onKeyDown={(e) => e.stopPropagation()}
               onKeyUp={(e) => e.stopPropagation()}
               placeholder="Type a command..."

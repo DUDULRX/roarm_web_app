@@ -6,7 +6,7 @@ import {
   UpdateJointDegrees,
   UpdateJointsDegrees,
 } from "../../../hooks/useRobotControl"; // Adjusted import path
-import { RevoluteJointsTable, controlDirection  } from "./RevoluteJointsTable"; // Updated import path
+import { RevoluteJointsTable  } from "./RevoluteJointsTable"; // Updated import path
 import ToggleButton from "../ToggleButton";
 import { RobotConfig } from "@/config/robotConfig";
 
@@ -22,8 +22,10 @@ type ControlPanelProps = {
 
   connectRobot: () => void;
   disconnectRobot: () => void;
+  getfeedback: () => void; 
   keyboardControlMap: RobotConfig["keyboardControlMap"]; // New prop for keyboard control
   CoordinateControls?: RobotConfig["CoordinateControls"]; // Use type from robotConfig
+  robotName: string;
 };
 
 export function ControlPanel({
@@ -33,8 +35,10 @@ export function ControlPanel({
   isConnected,
   connectRobot,
   disconnectRobot,
+  getfeedback,
   keyboardControlMap, // Destructure new prop
   CoordinateControls, // Destructure new prop
+  robotName,
 }: ControlPanelProps) {
   const [isForward, setIsForward] = useState(true);
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -48,6 +52,14 @@ export function ControlPanel({
       await connectRobot();
     } finally {
       setConnectionStatus("idle");
+    }
+  };
+
+  const updatefeedback = async () => {
+    try {
+      await getfeedback();
+    } catch (error) {
+      console.error("Error updating joint angles:", error);
     }
   };
 
@@ -103,6 +115,7 @@ export function ControlPanel({
           keyboardControlMap={keyboardControlMap}
           CoordinateControls={CoordinateControls}
           isReverse={!isForward}
+          robotName={robotName}
         />
       )}
 
@@ -127,6 +140,16 @@ export function ControlPanel({
             ? "Disconnect Robot"
             : "Connect Real Robot"}
         </button>
+
+      {/* 新增按钮：仅当已连接时显示 */}
+      {!isConnected && (
+        <button
+          onClick={updatefeedback} // 绑定你的更新关节角度函数
+          className="bg-green-600 hover:bg-green-500 text-white text-sm px-3 py-1.5 rounded w-full"
+        >
+          Update Joint Angles
+        </button>
+      )}       
       </div>
     </div>
   );

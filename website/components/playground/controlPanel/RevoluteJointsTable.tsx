@@ -4,10 +4,11 @@ import {
   JointState,
   UpdateJointDegrees,
   UpdateJointsDegrees,
+  initRoarm,
 } from "../../../hooks/useRobotControl";
 import { radiansToDegrees,degreesToRadians } from "../../../lib/utils";
 import { RobotConfig } from "@/config/robotConfig";
-import { roarm_m3 } from "@/config/roarmSolver"; 
+import { roarm_m3, roarm_m2 } from "@/config/roarmSolver"; 
 import { StepBack } from "lucide-react";
 
 type RevoluteJointsTableProps = {
@@ -17,6 +18,7 @@ type RevoluteJointsTableProps = {
   keyboardControlMap: RobotConfig["keyboardControlMap"];
   CoordinateControls?: RobotConfig["CoordinateControls"]; // Use type from robotConfig
   isReverse: boolean;
+  robotName: string;
 };
 
 // Define constants for interval and step size
@@ -49,14 +51,16 @@ export function RevoluteJointsTable({
   keyboardControlMap,
   CoordinateControls,
   isReverse,
+  robotName,
 }: RevoluteJointsTableProps) {
   const [pressedKeys, setPressedKeys] = useState<Set<string>>(new Set());
   // Refs to hold the latest values needed inside the interval callback
   const jointsRef = useRef(joints);
   const updateJointsDegreesRef = useRef(updateJointsDegrees);
   const keyboardControlMapRef = useRef(keyboardControlMap);
-  const [pose, setPose] = useState([200, 0, 50]); // Initial pose
-
+ // Initial pose
+  
+  initRoarm(robotName);
   // Update refs whenever the props change
   useEffect(() => {
     jointsRef.current = joints;
@@ -102,7 +106,7 @@ export function RevoluteJointsTable({
     };
   }, []); // Empty dependency array: sets up listeners once
 
-  const currPoseRef = { current: [200, 0, 50] }; 
+  let pose: number[] = [200, 0, 50, 0, 0];
   // Effect for handling continuous updates when keys are pressed
   useEffect(() => {
     let intervalId: NodeJS.Timeout | null = null;
@@ -111,10 +115,14 @@ export function RevoluteJointsTable({
       const currentJoints = jointsRef.current;
       const currentControlMap = keyboardControlMapRef.current || {};
       const currentPressedKeys = pressedKeys;
+      let currentpose = pose;    
+
       const currentCoordinateControls = CoordinateControls || [];
 
       let updates: { servoId: number; value: number }[] = [];
-
+      let hand_joint_rad = 0.0;
+      let ikResults: number[] = [];
+      let changepose = false;
       // ------------------------
       // 单独关节控制
       // ------------------------
@@ -122,7 +130,6 @@ export function RevoluteJointsTable({
         .map((joint) => {
           const currentDegrees = joint.virtualDegrees || 0;
           const increaseKey = currentControlMap[joint.servoId!]?.[0];
-          // const isReverse = currentPressedKeys.has("r");
 
           if (increaseKey && currentPressedKeys.has(increaseKey)) {
             let newValue = currentDegrees + (isReverse ? -KEY_UPDATE_STEP_DEGREES : KEY_UPDATE_STEP_DEGREES);
@@ -138,100 +145,106 @@ export function RevoluteJointsTable({
         })
         .filter((u) => u !== null) as { servoId: number; value: number }[];
 
-
-      const updatesMap = new Map<number, number>();
-      updates.forEach((u) => updatesMap.set(u.servoId, u.value));
-
       const getDegree = (id: number): number => {
-        if (updatesMap.has(id)) return updatesMap.get(id)!;
         const joint = currentJoints.find((j) => j.servoId === id);
         return joint?.virtualDegrees ?? 0;
       };
 
-      const base_joint_rad = degreesToRadians(getDegree(1));
-      const shoulder_joint_rad = degreesToRadians(getDegree(2));
-      const elbow_joint_rad = degreesToRadians(getDegree(3));
-      const wrist_joint_rad = degreesToRadians(getDegree(4));
-      const roll_joint_rad = degreesToRadians(getDegree(5));
-      const hand_joint_rad = degreesToRadians(getDegree(6));
+      if(robotName=="roarm_m2"){
+        const base_joint_rad = degreesToRadians(getDegree(1));
+        const shoulder_joint_rad = degreesToRadians(getDegree(2));
+        const elbow_joint_rad = degreesToRadians(getDegree(3));
+        hand_joint_rad = degreesToRadians(getDegree(4));
 
-      // 更新全局位姿
-      currPoseRef.current = roarm_m3.computePosbyJointRad(
-        base_joint_rad,
-        shoulder_joint_rad,
-        elbow_joint_rad,
-        wrist_joint_rad,
-        roll_joint_rad,
-        hand_joint_rad
-      );
+        // 更新全局位姿
+        currentpose = roarm_m2.computePosbyJointRad(
+          base_joint_rad,
+          shoulder_joint_rad,
+          elbow_joint_rad,
+          hand_joint_rad
+        );
+      }else if(robotName=="roarm_m3"){
+        const base_joint_rad = degreesToRadians(getDegree(1));
+        const shoulder_joint_rad = degreesToRadians(getDegree(2));
+        const elbow_joint_rad = degreesToRadians(getDegree(3));
+        const wrist_joint_rad = degreesToRadians(getDegree(4));
+        const roll_joint_rad = degreesToRadians(getDegree(5));
+        hand_joint_rad = degreesToRadians(getDegree(6));
+
+        // 更新全局位姿
+        currentpose = roarm_m3.computePosbyJointRad(
+          base_joint_rad,
+          shoulder_joint_rad,
+          elbow_joint_rad,
+          wrist_joint_rad,
+          roll_joint_rad,
+          hand_joint_rad
+        );
+      }
 
       // ------------------------
       // 坐标控制（XYZ控制）
       // ------------------------
-      let nextPose = [...currPoseRef.current];
-      let poseChanged = false;
-
       currentCoordinateControls.forEach((cm) => {
         if (!cm || !cm.name) return;
-        if (cm.name.includes("X") || cm.name.includes("Y") || cm.name.includes("Z")) {
+        else{        
           const keyPressed = currentPressedKeys.has(cm.keys[0]);
           if (!keyPressed) return;
 
           const delta = isReverse ? -0.2 : 0.2;
-
-          if (cm.name.includes("X")) {
-            nextPose[0] += delta;
-            poseChanged = true;
+          if (cm.name.includes("X")) {            
+            currentpose[0] += delta;
+            changepose= true;
           } else if (cm.name.includes("Y")) {
-            nextPose[1] += delta;
-            poseChanged = true;
-          } else if (cm.name.includes("Z")) {
-            nextPose[2] += delta;
-            poseChanged = true;
+            currentpose[1] += delta;
+            changepose= true;
+          } else if (cm.name.includes("Z")) {            
+            currentpose[2] += delta;
+            changepose= true;
           }
         }
-      });
-
-      if (poseChanged) {
-        setPose(nextPose);
-      }
-
-      // ------------------------
-      // 坐标逆解控制关节
-      // ------------------------
-      const ikResults = roarm_m3.computeJointRadbyPos(
-        nextPose[0],
-        nextPose[1],
-        nextPose[2],
-        currPoseRef.current[3],
-        currPoseRef.current[4],
-        hand_joint_rad
-      );
+        // ------------------------
+        // 坐标逆解控制关节
+        // ------------------------
+        if(changepose){
+          if(robotName=="roarm_m2"){  
+            ikResults = roarm_m2.computeJointRadbyPos(
+              currentpose[0],
+              currentpose[1],
+              currentpose[2],
+              hand_joint_rad
+            );                 
+          }else if(robotName=="roarm_m3"){
+            ikResults = roarm_m3.computeJointRadbyPos(
+              currentpose[0],
+              currentpose[1],
+              currentpose[2],
+              currentpose[3],
+              currentpose[4],
+              hand_joint_rad
+            );       
+          }
+          changepose=false;
+        }
 
       updates = currentJoints
         .map((joint, idx) => {
-          const hasIk = idx < ikResults.length;
-          const targetRad = hasIk
-            ? ikResults[idx]
-            : degreesToRadians(joint.virtualDegrees ?? 0); // 保留原角度
-
-          const deg = radiansToDegrees(targetRad);
+          const deg = radiansToDegrees(ikResults[idx]);
           const lowerLimit = radiansToDegrees(joint.limit?.lower ?? -Infinity);
           const upperLimit = radiansToDegrees(joint.limit?.upper ?? Infinity);
           const value = Math.max(lowerLimit, Math.min(upperLimit, deg));
-
           if (Math.abs(value - (joint.virtualDegrees ?? 0)) > 1e-3) {
             return { servoId: joint.servoId!, value };
           }
           return null;
         })
-        .filter(Boolean) as { servoId: number; value: number }[];
+        .filter((u) => u !== null) as { servoId: number; value: number }[];                
+      });
 
       if (updates.length > 0) {
         updateJointsDegreesRef.current(updates);
       } 
-    };
-
+    };    
     if (pressedKeys.size > 0) {
       intervalId = setInterval(updateJointsBasedOnKeys, KEY_UPDATE_INTERVAL_MS);
     }
@@ -239,7 +252,7 @@ export function RevoluteJointsTable({
     return () => {
       if (intervalId) clearInterval(intervalId);
     };
-  }, [pressedKeys, pose]);
+  }, [pressedKeys]);
 
   // Mouse handlers update the `pressedKeys` state, which triggers the interval effect
   const handleMouseDown = (key: string | undefined) => {

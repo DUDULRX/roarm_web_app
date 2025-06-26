@@ -8,6 +8,14 @@ export default function Home() {
   const robots = [
     {
       id: 0,
+      name: "roarm_m2",
+      image: "/roarm_m2.jpg",
+      playLink: "/play/roarm_m2",
+      wikiLink:
+        "https://www.waveshare.com/wiki/RoArm-M2",
+    },     
+    {
+      id: 1,
       name: "roarm_m3",
       image: "/roarm_m3.jpg",
       playLink: "/play/roarm_m3",

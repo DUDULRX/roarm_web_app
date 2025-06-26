@@ -5,6 +5,21 @@
 import { useState, useCallback, useEffect } from "react";
 import { Roarm } from "roarm-sdk";
 import { nan } from "zod";
+
+let roarmInstance: Roarm | null = null;
+
+export function initRoarm(roarm_type: string) {
+  roarmInstance = new Roarm({ roarm_type, baudrate: 115200 });
+  return roarmInstance;
+}
+
+export function getRoarm(): Roarm | null {
+  return roarmInstance;
+}
+
+// export const roarm = new Roarm({ roarm_type: "robotName", baudrate: 115200});
+export const roarm = getRoarm();
+
 // import { JointDetails } from "@/components/RobotLoader"; // <-- IMPORT JointDetails type
 type JointDetails = {
   name: string;
@@ -34,8 +49,6 @@ export type UpdateJointDegrees = (
 export type UpdateJointsDegrees = (
   updates: { servoId: number; value: number }[]
 ) => Promise<void>;
-
-export const roarm = new Roarm({ roarm_type: "roarm_m3", baudrate: 115200});
 
 export function useRobotControl(initialJointDetails: JointDetails[]) {
   const [isConnected, setIsConnected] = useState(false);
@@ -113,7 +126,6 @@ export function useRobotControl(initialJointDetails: JointDetails[]) {
       console.error("Failed to connect to the robot:", error);
     }
   }, [jointStates, jointDetails]);
-
   // Disconnect from the robot
   const disconnectRobot = useCallback(async () => {
     try {
@@ -145,6 +157,39 @@ export function useRobotControl(initialJointDetails: JointDetails[]) {
       console.error("Failed to disconnect from the robot:", error);
     }
   }, [jointDetails]);
+
+  const getfeedback = useCallback(async () => {
+    try {
+      const newStates = [...jointStates];
+      const initialPos: number[] = [];
+      for (let i = 0; i < jointDetails.length; i++) {
+        try {
+            const angles = await roarm.joints_angle_get()
+
+            initialPos.push(...angles);
+            // newStates[i].realDegrees = angles;
+            const newStates = [...jointStates];
+            for (let i = 0; i < newStates.length; i++) {
+              if (typeof angles[i] === 'number') {
+                newStates[i].realDegrees = angles[i];
+              } else {
+                newStates[i].realDegrees = "N/A"; 
+              }
+            }
+          
+        } catch (error) {
+          console.error(`Failed to initialize joint ${jointDetails[i].servoId}:`, error);
+          initialPos.push(0);
+          if (jointDetails[i].jointType === "revolute") {
+            newStates[i].realDegrees = "error";
+          }
+        }
+      }
+      setJointStates(newStates);
+    } catch (error) {
+      console.error("Failed to connect to the robot:", error);
+    }
+  }, [jointStates, jointDetails]);
 
   // Update revolute joint degrees
   const updateJointDegrees = useCallback(
@@ -234,6 +279,7 @@ export function useRobotControl(initialJointDetails: JointDetails[]) {
     isConnected,
     connectRobot,
     disconnectRobot,
+    getfeedback,
     jointStates,
     updateJointDegrees,
     updateJointsDegrees,

@@ -185,6 +185,7 @@ export default function RobotLoader({ robotName }: RobotLoaderProps) {
     isConnected,
     connectRobot,
     disconnectRobot,
+    getfeedback,
     jointStates,
     setJointDetails: updateJointDetails,
     updateJointDegrees,
@@ -230,8 +231,10 @@ export default function RobotLoader({ robotName }: RobotLoaderProps) {
         isConnected={isConnected}
         connectRobot={connectRobot}
         disconnectRobot={disconnectRobot}
+        getfeedback={getfeedback}
         keyboardControlMap={keyboardControlMap}
         CoordinateControls={CoordinateControls}
+        robotName={robotName}
       />
       <ChatControl robotName={robotName} systemPrompt={systemPrompt} />
     </>
