@@ -142,14 +142,14 @@ export function ControlPanel({
         </button>
 
       {/* 新增按钮：仅当已连接时显示 */}
-      {/* {isConnected && (
+      {isConnected && (
         <button
           onClick={updatefeedback} // 绑定你的更新关节角度函数
           className="bg-green-600 hover:bg-green-500 text-white text-sm px-3 py-1.5 rounded w-full"
         >
           Update Joint Angles
         </button>
-      )}        */}
+      )}       
       </div>
     </div>
   );
