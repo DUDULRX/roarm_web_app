@@ -92,13 +92,12 @@ export function useRobotControl(initialJointDetails: JointDetails[]) {
       await roarm.connect();
       setIsConnected(true);
       console.log("Robot connected successfully.");
+      const angles = await roarm.joints_angle_get()
 
       const newStates = [...jointStates];
       const initialPos: number[] = [];
       for (let i = 0; i < jointDetails.length; i++) {
         try {
-            const angles = await roarm.joints_angle_get()
-
             initialPos.push(...angles);
             // newStates[i].realDegrees = angles;
             const newStates = [...jointStates];
@@ -162,10 +161,10 @@ export function useRobotControl(initialJointDetails: JointDetails[]) {
     try {
       const newStates = [...jointStates];
       const initialPos: number[] = [];
+      const angles = await roarm.joints_angle_get()
+
       for (let i = 0; i < jointDetails.length; i++) {
         try {
-            const angles = await roarm.joints_angle_get()
-
             initialPos.push(...angles);
             // newStates[i].realDegrees = angles;
             const newStates = [...jointStates];
@@ -179,7 +178,6 @@ export function useRobotControl(initialJointDetails: JointDetails[]) {
           
         } catch (error) {
           console.error(`Failed to initialize joint ${jointDetails[i].servoId}:`, error);
-          initialPos.push(0);
           if (jointDetails[i].jointType === "revolute") {
             newStates[i].realDegrees = "error";
           }
@@ -187,7 +185,7 @@ export function useRobotControl(initialJointDetails: JointDetails[]) {
       }
       setJointStates(newStates);
     } catch (error) {
-      console.error("Failed to connect to the robot:", error);
+      console.error("Failed to update feedback to the robot:", error);
     }
   }, [jointStates, jointDetails]);
 
