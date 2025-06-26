@@ -17,8 +17,8 @@ export function getRoarm(): Roarm | null {
   return roarmInstance;
 }
 
-// export const roarm = new Roarm({ roarm_type: "robotName", baudrate: 115200});
-export const roarm = getRoarm();
+export const roarm = new Roarm({ roarm_type: "roam_m3", baudrate: 115200});
+// export const roarm = getRoarm();
 
 // import { JointDetails } from "@/components/RobotLoader"; // <-- IMPORT JointDetails type
 type JointDetails = {
