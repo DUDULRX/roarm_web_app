@@ -28,12 +28,15 @@ const formatVirtualDegrees = (degrees?: number) =>
   degrees !== undefined
     ? `${degrees > 0 ? "+" : ""}${degrees.toFixed(1)}°`
     : "/";
+
 const formatRealDegrees = (degrees?: number | "N/A" | "error") => {
   if (degrees === "error") {
     return <span className="text-red-500">Error</span>;
   }
   return degrees === "N/A" ? "/" : `${degrees?.toFixed(1)}°`;
 };
+
+
 
 export function RevoluteJointsTable({
   joints,

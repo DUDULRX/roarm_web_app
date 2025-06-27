@@ -17,11 +17,15 @@ type ControlPanelProps = {
   jointStates: JointState[]; // Use JointState type from useRobotControl
   updateJointDegrees: UpdateJointDegrees; // Updated type
   updateJointsDegrees: UpdateJointsDegrees; // Updated type
-  isConnected: boolean;
-  robotName: string; 
-  connectRobot: () => void;
-  disconnectRobot: () => void;
-  getfeedback: () => void; 
+  isSerialConnected: boolean;
+  isWebSocketConnected: boolean;
+  robotName: string;
+  connectRobotBySerial: () => void;
+  disconnectRobotBySerial: () => void;
+  connectRobotByWebSocket: () => void;
+  disconnectRobotByWebSocket: () => void;
+  getfeedbackBySerial: () => void;
+  getfeedbackByWebSocket: () => void;
   keyboardControlMap: RobotConfig["keyboardControlMap"]; // New prop for keyboard control
   CoordinateControls?: RobotConfig["CoordinateControls"]; // Use type from robotConfig
 };
@@ -30,11 +34,15 @@ export function ControlPanel({
   jointStates,
   updateJointDegrees,
   updateJointsDegrees,
-  isConnected,
+  isSerialConnected,
+  isWebSocketConnected,
   robotName,
-  connectRobot,
-  disconnectRobot,
-  getfeedback,
+  connectRobotBySerial,
+  disconnectRobotBySerial,
+  connectRobotByWebSocket,
+  disconnectRobotByWebSocket,
+  getfeedbackBySerial,
+  getfeedbackByWebSocket,
   keyboardControlMap, // Destructure new prop
   CoordinateControls, // Destructure new prop
 }: ControlPanelProps) {
@@ -44,27 +52,53 @@ export function ControlPanel({
     "idle" | "connecting" | "disconnecting"
   >("idle");
 
-  const handleConnect = async () => {
+  const handleConnectBySerial = async () => {
     setConnectionStatus("connecting");
     try {
-      await connectRobot();
+      await connectRobotBySerial();
     } finally {
       setConnectionStatus("idle");
     }
   };
 
-  const updatefeedback = async () => {
+  const updatefeedbackBySerial = async () => {
     try {
-      await getfeedback();
+      await getfeedbackBySerial();
     } catch (error) {
       console.error("Error updating joint angles:", error);
     }
   };
 
-  const handleDisconnect = async () => {
+  const updatefeedbackByWebSocket = async () => {
+    try {
+      await getfeedbackByWebSocket();
+    } catch (error) {
+      console.error("Error updating joint angles:", error);
+    }
+  };
+
+  const handleDisconnectBySerial = async () => {
     setConnectionStatus("disconnecting");
     try {
-      await disconnectRobot();
+      await disconnectRobotBySerial();
+    } finally {
+      setConnectionStatus("idle");
+    }
+  };
+
+  const handleConnectByWebSocket = async () => {
+    setConnectionStatus("connecting");
+    try {
+      await connectRobotByWebSocket();
+    } finally {
+      setConnectionStatus("idle");
+    }
+  };
+
+  const handleDisconnectByWebSocket = async () => {
+    setConnectionStatus("disconnecting");
+    try {
+      await disconnectRobotByWebSocket();
     } finally {
       setConnectionStatus("idle");
     }
@@ -120,10 +154,10 @@ export function ControlPanel({
       {/* Connection Controls */}
       <div className="mt-4 flex flex-col gap-2">
         <button
-          onClick={isConnected ? handleDisconnect : handleConnect}
+          onClick={isSerialConnected ? handleDisconnectBySerial : handleConnectBySerial}
           disabled={connectionStatus !== "idle"}
           className={`h-10 text-sm px-4 py-1.5 rounded text-white ${
-            !!isConnected
+            !!isSerialConnected
               ? "bg-red-600 hover:bg-red-500"
               : "bg-blue-600 hover:bg-blue-500"
           } ${connectionStatus !== "idle" ? "opacity-50 cursor-not-allowed" : ""}`}
@@ -132,14 +166,14 @@ export function ControlPanel({
             ? "Connecting..."
             : connectionStatus === "disconnecting"
             ? "Disconnecting..."
-            : isConnected
+            : isSerialConnected
             ? "Disconnect Robot"
-            : "Connect Real Robot"}
+            : "Connect Real Robot By Serial"}
         </button>
 
-        {isConnected && (
+        {isSerialConnected && (
           <button
-            onClick={updatefeedback}
+            onClick={updatefeedbackBySerial}
             className="h-10 bg-blue-600 hover:bg-blue-500 text-white text-sm px-4 py-1.5 rounded"
           >
             Update Joint Angles
@@ -147,6 +181,34 @@ export function ControlPanel({
         )}
       </div>
 
+      <div className="mt-4 flex flex-col gap-2">
+        <button
+          onClick={isWebSocketConnected ? handleDisconnectByWebSocket : handleConnectByWebSocket}
+          disabled={connectionStatus !== "idle"}
+          className={`h-10 text-sm px-4 py-1.5 rounded text-white ${
+            !!isWebSocketConnected
+              ? "bg-red-600 hover:bg-red-500"
+              : "bg-blue-600 hover:bg-blue-500"
+          } ${connectionStatus !== "idle" ? "opacity-50 cursor-not-allowed" : ""}`}
+        >
+          {connectionStatus === "connecting"
+            ? "Connecting..."
+            : connectionStatus === "disconnecting"
+            ? "Disconnecting..."
+            : isWebSocketConnected
+            ? "Disconnect Robot"
+            : "Connect Real Robot By WebSocket"}
+        </button>
+
+        {isWebSocketConnected && (
+          <button
+            onClick={updatefeedbackByWebSocket}
+            className="h-10 bg-blue-600 hover:bg-blue-500 text-white text-sm px-4 py-1.5 rounded"
+          >
+            Update Joint Angles
+          </button>
+        )}
+      </div>
     </div>
   );
 }

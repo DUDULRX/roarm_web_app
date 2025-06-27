@@ -12,6 +12,8 @@ import {
   JointState,
   useRobotControl,
 } from "@/hooks/useRobotControl";
+import { useRosWebSocketClient } from "@/hooks/useRosWebSocketClient"; 
+
 import { Canvas } from "@react-three/fiber";
 import { degreesToRadians } from "@/lib/utils";
 import { ChatControl } from "./ChatControl"; // Import ChatControl component
@@ -170,6 +172,8 @@ export default function RobotLoader({ robotName }: RobotLoaderProps) {
   const [jointDetails, setJointDetails] = useState<JointDetails[]>([]);
   const config = robotConfigMap[robotName];
   const roarmRef = useRef<Roarm | null>(null);
+  
+  const rosClient = useRosWebSocketClient();
 
   useEffect(() => {
   roarmRef.current = initRoarm(robotName, 115200); // 初始化一次
@@ -190,15 +194,19 @@ export default function RobotLoader({ robotName }: RobotLoaderProps) {
   } = config; // Extract compoundMovements and systemPrompt
 
   const {
-    isConnected,
-    connectRobot,
-    disconnectRobot,
-    getfeedback,
+    isSerialConnected,
+    isWebSocketConnected,
+    connectRobotBySerial,
+    disconnectRobotBySerial,
+    connectRobotByWebSocket,
+    disconnectRobotByWebSocket,
+    getfeedbackBySerial,
+    getfeedbackByWebSocket,
     jointStates,
     setJointDetails: updateJointDetails,
     updateJointDegrees,
     updateJointsDegrees,
-  } = useRobotControl(jointDetails, roarmRef.current);
+  } = useRobotControl(jointDetails, roarmRef.current, rosClient);
 
   useEffect(() => {
     updateJointDetails(jointDetails);
@@ -236,11 +244,15 @@ export default function RobotLoader({ robotName }: RobotLoaderProps) {
         jointStates={jointStates}
         updateJointDegrees={updateJointDegrees}
         updateJointsDegrees={updateJointsDegrees}
-        isConnected={isConnected}
+        isSerialConnected={isSerialConnected}
+        isWebSocketConnected={isWebSocketConnected}
         robotName={robotName}
-        connectRobot={connectRobot}
-        disconnectRobot={disconnectRobot}
-        getfeedback={getfeedback}
+        connectRobotBySerial={connectRobotBySerial}
+        disconnectRobotBySerial={disconnectRobotBySerial}
+        connectRobotByWebSocket={connectRobotByWebSocket}
+        disconnectRobotByWebSocket={disconnectRobotByWebSocket}
+        getfeedbackBySerial={getfeedbackBySerial}
+        getfeedbackByWebSocket={getfeedbackByWebSocket}
         keyboardControlMap={keyboardControlMap}
         CoordinateControls={CoordinateControls}
       />
@@ -248,3 +260,4 @@ export default function RobotLoader({ robotName }: RobotLoaderProps) {
     </>
   );
 }
+
