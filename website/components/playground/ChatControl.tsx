@@ -114,21 +114,16 @@ export function ChatControl({
   const handleSend = () => {
     if (input.trim()) {
       if (!apiKey) {
-        setShowSettings(true);
-        return;
+        // setShowSettings(true);
+        // return;
       }
       handleCommand(input.trim());
       setInput(""); // Clear input after sending
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") {
-      handleSend();
-    }
-  };
-
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  e.stopPropagation();
   if (e.key === "Enter") {
     e.preventDefault();   
     handleSend();
@@ -209,9 +204,7 @@ export function ChatControl({
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              // onKeyPress={handleKeyPress}
               onKeyDown={handleKeyDown}
-              onKeyDown={(e) => e.stopPropagation()}
               onKeyUp={(e) => e.stopPropagation()}
               placeholder="Type a command..."
               className="flex-1 pl-10 p-2 rounded bg-zinc-700 text-white outline-none"

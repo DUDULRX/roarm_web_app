@@ -30,7 +30,7 @@ export type RobotConfig = {
 export const robotConfigMap: { [key: string]: RobotConfig } = {
   "roarm_m2": {
     urdfUrl: "/URDF/roarm_m2.urdf",  
-    camera: { position: [-20, 10, -15], fov: 20 },
+    camera: { position: [20, 20, 50], fov: 20 },
     orbitTarget: [0, 1, 0],
     keyboardControlMap: {
       1:  "1",
@@ -46,17 +46,17 @@ export const robotConfigMap: { [key: string]: RobotConfig } = {
     },
     CoordinateControls: [
       {
-        name: "X backward & forward",
+        name: "X increase & decrease",
         keys: "x",
       },
       {
-        name: "Y backward & forward",
+        name: "Y increase & decrease",
         keys: "y",
       },
       {
-        name: "Z backward & forward",
+        name: "Z increase & decrease",
         keys:  "z",
-      },            
+      },             
     ],
     systemPrompt: `You can help control the roarm_m3 robot by pressing keyboard keys. Use the keyPress tool to simulate key presses. Each key will be held down for 1 second by default. If the user describes roughly wanting to make it longer or shorter, adjust the duration accordingly.
     The robot can be controlled with the following keys:
@@ -65,12 +65,12 @@ export const robotConfigMap: { [key: string]: RobotConfig } = {
     - "x" for moving the gripper backward and forward.
     - "y" for moving the gripper left and right.
     - "z" for moving the gripper up and down.
-    - "r" to reverse the movement direction, default is forward.
+    - "s" to switch the movement direction, default is forward.
     `,
   },   
   "roarm_m3": {
     urdfUrl: "/URDF/roarm_m3.urdf",  
-    camera: { position: [-20, 10, -15], fov: 20 },
+    camera: { position: [20, 20, 50], fov: 20 },
     orbitTarget: [0, 1, 0],
     keyboardControlMap: {
       1:  "1",
@@ -90,17 +90,25 @@ export const robotConfigMap: { [key: string]: RobotConfig } = {
     },
     CoordinateControls: [
       {
-        name: "X backward & forward",
+        name: "X increase & decrease",
         keys: "x",
       },
       {
-        name: "Y backward & forward",
+        name: "Y increase & decrease",
         keys: "y",
       },
       {
-        name: "Z backward & forward",
+        name: "Z increase & decrease",
         keys:  "z",
-      },            
+      },  
+      {
+        name: "Roll increase & decrease",
+        keys: "r",
+      },
+      {
+        name: "Pitch increase & decrease",
+        keys: "p",
+      },                
     ],
     systemPrompt: `You can help control the roarm_m3 robot by pressing keyboard keys. Use the keyPress tool to simulate key presses. Each key will be held down for 1 second by default. If the user describes roughly wanting to make it longer or shorter, adjust the duration accordingly.
     The robot can be controlled with the following keys:
@@ -109,7 +117,9 @@ export const robotConfigMap: { [key: string]: RobotConfig } = {
     - "x" for moving the gripper backward and forward.
     - "y" for moving the gripper left and right.
     - "z" for moving the gripper up and down.
-    - "r" to reverse the movement direction, default is forward.
+    - "r" for rolling the gripper.
+    - "p" for pitching the gripper.
+    - "s" to switch the movement direction, default is forward.
     `,
   },  
 };

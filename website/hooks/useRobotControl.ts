@@ -229,10 +229,10 @@ export function useRobotControl(
         const anglesArray: number[] = [];
         // const angles = await roarm.joints_angle_get()
 
-        for (let servoId = 1; servoId <= 6; servoId++) {
+        jointDetails.forEach((joint) => {
           const jointIndex = newStates.findIndex(
-            (state) => state.servoId === servoId
-          );
+              (state) => state.servoId === joint.servoId
+            );
           if (jointIndex !== -1) {
             const virtual = newStates[jointIndex].virtualDegrees || 0;
 
@@ -242,7 +242,8 @@ export function useRobotControl(
           } else {
             anglesArray.push(0);
           }
-        }
+        });
+        console.log("anglesArray", anglesArray);
 
         try {
           if (

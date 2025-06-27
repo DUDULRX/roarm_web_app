@@ -7,7 +7,7 @@ import {
   UpdateJointsDegrees,
 } from "../../../hooks/useRobotControl"; // Adjusted import path
 import { RevoluteJointsTable  } from "./RevoluteJointsTable"; // Updated import path
-import ToggleButton from "../ToggleButton";
+import DirectionButton from "../DirectionButton";
 import { RobotConfig } from "@/config/robotConfig";
 
 // const baudRate = 1000000; // Define baud rate for serial communication - Keep if needed elsewhere, remove if only for UI
@@ -95,7 +95,7 @@ export function ControlPanel({
         <div>
           <span>Direction</span>
           </div>
-          <ToggleButton isForward={isForward} onToggle={setIsForward} />
+          <DirectionButton isForward={isForward} onToggle={setIsForward} />
         <button
           onClick={() => setIsCollapsed(true)}
           className="ml-2 text-xl hover:bg-zinc-800 px-2 rounded-full"
@@ -118,17 +118,15 @@ export function ControlPanel({
       )}
 
       {/* Connection Controls */}
-      <div className="mt-4 flex justify-between items-center">
+      <div className="mt-4 flex flex-col gap-2">
         <button
           onClick={isConnected ? handleDisconnect : handleConnect}
           disabled={connectionStatus !== "idle"}
-          className={`text-white text-sm px-3 py-1.5 rounded w-full ${
-            isConnected
+          className={`h-10 text-sm px-4 py-1.5 rounded text-white ${
+            !!isConnected
               ? "bg-red-600 hover:bg-red-500"
               : "bg-blue-600 hover:bg-blue-500"
-          } ${
-            connectionStatus !== "idle" ? "opacity-50 cursor-not-allowed" : ""
-          }`}
+          } ${connectionStatus !== "idle" ? "opacity-50 cursor-not-allowed" : ""}`}
         >
           {connectionStatus === "connecting"
             ? "Connecting..."
@@ -139,16 +137,16 @@ export function ControlPanel({
             : "Connect Real Robot"}
         </button>
 
-      {/* 新增按钮：仅当已连接时显示 */}
         {isConnected && (
           <button
             onClick={updatefeedback}
-            className="bg-blue-500 hover:bg-blue-400 text-white text-sm px-3 py-1.5 rounded w-full"
+            className="h-10 bg-blue-600 hover:bg-blue-500 text-white text-sm px-4 py-1.5 rounded"
           >
             Update Joint Angles
           </button>
         )}
       </div>
+
     </div>
   );
 }

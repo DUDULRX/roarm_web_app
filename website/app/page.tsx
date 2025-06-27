@@ -30,7 +30,7 @@ export default function Home() {
         <div className="text-center w-full">
           {" "}
           {/* Ensure text-center container takes full width */}
-          <h1 className="text-6xl mb-4 font-bold">roarm_m3</h1>
+          <h1 className="text-6xl mb-4 font-bold">roarm</h1>
           <p className="text-2xl mb-8">Open source, low-cost robots 🤖</p>
           {/* Changed from grid to flex for flexible centering */}
           <div className="container mx-auto p-4 flex flex-wrap justify-center gap-8 relative z-10">

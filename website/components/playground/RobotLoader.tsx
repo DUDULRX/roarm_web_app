@@ -16,6 +16,7 @@ import { Canvas } from "@react-three/fiber";
 import { degreesToRadians } from "@/lib/utils";
 import { ChatControl } from "./ChatControl"; // Import ChatControl component
 import { Roarm } from "roarm-sdk";
+import { TransformControls } from "@react-three/drei";
 import { initRoarm } from './controlPanel/roarmInstance.js';
 
 export type JointDetails = {
@@ -243,7 +244,7 @@ export default function RobotLoader({ robotName }: RobotLoaderProps) {
         keyboardControlMap={keyboardControlMap}
         CoordinateControls={CoordinateControls}
       />
-      <ChatControl robotName={robotName} systemPrompt={systemPrompt} />
+      {/* <ChatControl robotName={robotName} systemPrompt={systemPrompt} /> */}
     </>
   );
 }

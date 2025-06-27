@@ -35,14 +35,6 @@ const formatRealDegrees = (degrees?: number | "N/A" | "error") => {
   return degrees === "N/A" ? "/" : `${degrees?.toFixed(1)}°`;
 };
 
-export function controlDirection(isForward: boolean) {
-  if (isForward) {
-    console.log('correct');
-  } else {
-    console.log('reverse');
-  }
-}
-
 export function RevoluteJointsTable({
   joints,
   updateJointDegrees,
@@ -189,16 +181,32 @@ export function RevoluteJointsTable({
           const keyPressed = currentPressedKeys.has(cm.keys[0]);
           if (!keyPressed) return;
 
-          const delta = isReverse ? -0.2 : 0.2;
-          if (cm.name.includes("X")) {            
-            currentpose[0] += delta;
-            changepose= true;
-          } else if (cm.name.includes("Y")) {
-            currentpose[1] += delta;
-            changepose= true;
-          } else if (cm.name.includes("Z")) {            
-            currentpose[2] += delta;
-            changepose= true;
+          const position_delta = isReverse ? -0.2 : 0.2;
+          const orientation_delta = isReverse ? -0.001 : 0.001;
+
+          switch (cm.keys[0]) {
+            case "x": // X轴控制
+              currentpose[0] += position_delta;
+              changepose = true;
+              break;
+            case "y": // Y轴控制
+              currentpose[1] += position_delta;
+              changepose = true;
+              break;
+            case "z": // Z轴控制
+              currentpose[2] += position_delta;
+              changepose = true;
+              break;
+            case "r": // roll控制
+              currentpose[3] += orientation_delta;
+              changepose = true;
+              break;
+            case "p": // pitch控制
+              currentpose[4] += orientation_delta;
+              changepose = true;
+              break;
+            default:
+              break;
           }
         }
         // ------------------------
@@ -211,7 +219,8 @@ export function RevoluteJointsTable({
               currentpose[1],
               currentpose[2],
               hand_joint_rad
-            );                 
+            );          
+          changepose=false;
           }else if(robotName=="roarm_m3"){
             ikResults = roarm_m3.computeJointRadbyPos(
               currentpose[0],
@@ -372,11 +381,16 @@ export function RevoluteJointsTable({
           })}
         </tbody>
       </table>
-      {/* Display compoundMovements if present */}
+      {/* Display CoordinateControls if present */}
       {CoordinateControls && CoordinateControls.length > 0 && (
         <div className="mt-4">
-          <div className="font-bold mb-2">Coordinate Controls</div>
           <table className="table-auto w-full text-left text-sm">
+            <thead>
+              <tr>
+                <th className="border-b border-gray-600 pb-2 pr-2 ">Coordinate Controls</th>
+                <th className="border-b border-gray-600 pb-1 text-center px-4"></th>
+              </tr>
+            </thead>
             <tbody>
               {CoordinateControls.map((cm, idx) => {
                 const decreaseKey = cm.keys[1];

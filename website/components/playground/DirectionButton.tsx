@@ -1,19 +1,19 @@
 // components/ToggleButton.tsx
 import React, { useEffect } from 'react';
 
-interface ToggleButtonProps {
+interface DirectionButtonProps {
   isForward: boolean;
   onToggle: (newState: boolean) => void;
 }
 
-const ToggleButton: React.FC<ToggleButtonProps> = ({ isForward, onToggle }) => {
+const DirectionButton: React.FC<DirectionButtonProps> = ({ isForward, onToggle }) => {
   const handleClick = () => {
     onToggle(!isForward); // 点击切换方向
   };
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key.toLowerCase() === 'r') {
+      if (e.key.toLowerCase() === 's') {
         onToggle(!isForward); // 按 r 键也切换方向
       }
     };
@@ -28,7 +28,7 @@ const ToggleButton: React.FC<ToggleButtonProps> = ({ isForward, onToggle }) => {
     <button
       onClick={handleClick}
       className={`px-4 py-2 text-lg border rounded ${
-        isForward ? 'bg-blue-500 text-white' : 'bg-red-500 text-white'
+        isForward ? 'bg-blue-600 text-white' : 'bg-red-600 text-white'
       }`}
     >
       {isForward ? 'correct' : 'reverse'}
@@ -36,4 +36,4 @@ const ToggleButton: React.FC<ToggleButtonProps> = ({ isForward, onToggle }) => {
   );
 };
 
-export default ToggleButton;
+export default DirectionButton;

@@ -7,7 +7,7 @@ export default function Header() {
     <>
       <header className="text-white w-full p-5 sm:px-10 flex justify-between items-center fixed top-0 left-0 right-0 z-50">
         <Link href="/">
-          <div className="text-2xl font-bold e">roarm_m3</div>
+          <div className="text-2xl font-bold e">roarm</div>
         </Link>
         <a
           className="github-button"
