@@ -134,7 +134,7 @@ export function useRobotControl(
     try {
       // Disable torque for revolute servos and set wheel speed to 0 for continuous servos
       try {
-        roarm.current.torque_set(0);
+        roarm.torque_set(0);
         await roarm.disconnect();
       } catch (error) {
         console.error(
