@@ -41,13 +41,13 @@ class RoarmDriver(Node):
                 self.roarm.torque_set(int(args[0]))
                 self.roarm.feedback_get()
             elif cmd == 121:
-                self.roarm.joint_angle_ctrl(args[0], args[1])
+                self.roarm.joint_angle_ctrl(int(args[0]), args[1], speed=1000, acc=50)
                 self.roarm.feedback_get()
             elif cmd == 122:
                 self.roarm.joints_angle_ctrl(angles=args, speed=1000, acc=50)
                 self.roarm.feedback_get()
             else:
-                self.get_logger().warn(f"未知命令: {cmd}")
+                self.get_logger().warn(f"unknown command: {cmd}")
 
         except SerialException as e:
             self.get_logger().error(f"[serial error] {e}")

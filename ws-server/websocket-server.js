@@ -1,64 +1,34 @@
 const WebSocket = require('ws');
-const rclnodejs = require('rclnodejs');
 
-async function initROS(node) {
-  // 发布者
-  const publisher = node.createPublisher('std_msgs/msg/Float64MultiArray', 'roarm_command');
-  return publisher;
-}
+const wss = new WebSocket.Server({ port: 9090 });
 
-async function startServer() {
-  await rclnodejs.init();
-  const node = new rclnodejs.Node('websocket_ros_node');
+const clients = new Set();
 
-  const publisher = await initROS(node);
+wss.on('connection', (ws) => {
+  console.log('[WS] 客户端已连接');
+  clients.add(ws);
 
-  const wss = new WebSocket.Server({ port: 9090 });
+  ws.on('message', (message) => {
+    console.log('[WS] 收到消息:', message.toString());
 
-  // 订阅反馈消息，收到后广播给所有 WebSocket 客户端
-  node.createSubscription(
-    'std_msgs/msg/Float64MultiArray',
-    'roarm_feedback',
-    (msg) => {
-      const feedback = {
-        type: 'feedback',
-        data: msg.data,
-      };
-      const json = JSON.stringify(feedback);
+    try {
+      const data = JSON.parse(message.toString());
 
-      wss.clients.forEach((client) => {
-        if (client.readyState === WebSocket.OPEN) {
-          client.send(json);
+      clients.forEach((client) => {
+        if (client !== ws && client.readyState === WebSocket.OPEN) {
+          client.send(JSON.stringify(data));
         }
       });
+    } catch (err) {
+      console.error('[WS] JSON 解析失败:', err);
     }
-  );
-
-  rclnodejs.spin(node);
-
-  wss.on('connection', (ws) => {
-    console.log('[WS] 前端已连接');
-
-    ws.on('message', (message) => {
-      console.log('[WS] 收到消息:', message.toString());
-
-      try {
-        const data = JSON.parse(message.toString());
-        if (Array.isArray(data)) {
-          publisher.publish({ data });
-          console.log('[ROS] 发布:', data);
-        } else {
-          console.warn('[WS] 接收到的数据不是数组:', data);
-        }
-      } catch (err) {
-        console.error('[WS] JSON 解析失败:', err);
-      }
-    });
-
-    ws.send('✅ WebSocket 已连接，发送数组将发布到 /roarm_command');
   });
+  
+  ws.on('close', () => {
+    console.log('[WS] 客户端断开连接');
+    clients.delete(ws);
+  });
+});
 
-  console.log('[WS] WebSocket server 启动在 ws://localhost:9090');
-}
+console.log('[WS] WebSocket Server 启动在 ws://localhost:9090');
 
-startServer();

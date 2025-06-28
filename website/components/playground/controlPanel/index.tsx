@@ -7,10 +7,9 @@ import {
   UpdateJointsDegrees,
 } from "../../../hooks/useRobotControl"; // Adjusted import path
 import { RevoluteJointsTable  } from "./RevoluteJointsTable"; // Updated import path
-import DirectionButton from "../DirectionButton";
+import DirectionButton from "./DirectionButton";
 import { RobotConfig } from "@/config/robotConfig";
-
-// const baudRate = 1000000; // Define baud rate for serial communication - Keep if needed elsewhere, remove if only for UI
+import { SettingsWebSocketModal } from "./SettingsWebSocketModal"; // Import the modal component
 
 // --- Control Panel Component ---
 type ControlPanelProps = {
@@ -22,7 +21,7 @@ type ControlPanelProps = {
   robotName: string;
   connectRobotBySerial: () => void;
   disconnectRobotBySerial: () => void;
-  connectRobotByWebSocket: () => void;
+  connectRobotByWebSocket: (url: string) => void;
   disconnectRobotByWebSocket: () => void;
   getfeedbackBySerial: () => void;
   getfeedbackByWebSocket: () => void;
@@ -48,16 +47,29 @@ export function ControlPanel({
 }: ControlPanelProps) {
   const [isForward, setIsForward] = useState(true);
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [connectionStatus, setConnectionStatus] = useState<
+  const [serialConnectionStatus, setSerialConnectionStatus] = useState<
     "idle" | "connecting" | "disconnecting"
   >("idle");
-
+  const [webSocketConnectionStatus, setWebSocketConnectionStatus] = useState<
+    "idle" | "connecting" | "disconnecting"
+  >("idle");
+  const [showWsModal, setShowWsModal] = useState(false);
+  
   const handleConnectBySerial = async () => {
-    setConnectionStatus("connecting");
+    setSerialConnectionStatus("connecting");
     try {
       await connectRobotBySerial();
     } finally {
-      setConnectionStatus("idle");
+      setSerialConnectionStatus("idle");
+    }
+  };
+
+  const handleDisconnectBySerial = async () => {
+    setSerialConnectionStatus("disconnecting");
+    try {
+      await disconnectRobotBySerial();
+    } finally {
+      setSerialConnectionStatus("idle");
     }
   };
 
@@ -68,6 +80,33 @@ export function ControlPanel({
       console.error("Error updating joint angles:", error);
     }
   };
+  
+  const handleConnectByWebSocket = () => {
+    setShowWsModal(true);  
+  };
+
+  const handleConfirmWsModal = async (inputUrl: string) => {
+    try {
+      setWebSocketConnectionStatus("connecting");
+      await connectRobotByWebSocket(inputUrl);
+      localStorage.setItem("ws_server_url", inputUrl);
+      setShowWsModal(false);
+    } catch (error) {
+      console.error("WebSocket connection failed:", error);
+      alert("connection failed, please check the address");
+    } finally {
+      setWebSocketConnectionStatus("idle");
+    }
+  };
+
+ const handleDisconnectByWebSocket = async () => {
+    setWebSocketConnectionStatus("disconnecting");
+    try {
+      await disconnectRobotByWebSocket();
+    } finally {
+      setWebSocketConnectionStatus("idle");
+    }
+  };
 
   const updatefeedbackByWebSocket = async () => {
     try {
@@ -76,34 +115,6 @@ export function ControlPanel({
       console.error("Error updating joint angles:", error);
     }
   };
-
-  const handleDisconnectBySerial = async () => {
-    setConnectionStatus("disconnecting");
-    try {
-      await disconnectRobotBySerial();
-    } finally {
-      setConnectionStatus("idle");
-    }
-  };
-
-  const handleConnectByWebSocket = async () => {
-    setConnectionStatus("connecting");
-    try {
-      await connectRobotByWebSocket();
-    } finally {
-      setConnectionStatus("idle");
-    }
-  };
-
-  const handleDisconnectByWebSocket = async () => {
-    setConnectionStatus("disconnecting");
-    try {
-      await disconnectRobotByWebSocket();
-    } finally {
-      setConnectionStatus("idle");
-    }
-  };
-
   // Separate jointStates into revolute and continuous categories
   const revoluteJoints = jointStates.filter(
     (state) => state.jointType === "revolute"
@@ -155,16 +166,16 @@ export function ControlPanel({
       <div className="mt-4 flex flex-col gap-2">
         <button
           onClick={isSerialConnected ? handleDisconnectBySerial : handleConnectBySerial}
-          disabled={connectionStatus !== "idle"}
+          disabled={serialConnectionStatus !== "idle"}
           className={`h-10 text-sm px-4 py-1.5 rounded text-white ${
             !!isSerialConnected
               ? "bg-red-600 hover:bg-red-500"
               : "bg-blue-600 hover:bg-blue-500"
-          } ${connectionStatus !== "idle" ? "opacity-50 cursor-not-allowed" : ""}`}
+          } ${serialConnectionStatus !== "idle" ? "opacity-50 cursor-not-allowed" : ""}`}
         >
-          {connectionStatus === "connecting"
+          {serialConnectionStatus === "connecting"
             ? "Connecting..."
-            : connectionStatus === "disconnecting"
+            : serialConnectionStatus === "disconnecting"
             ? "Disconnecting..."
             : isSerialConnected
             ? "Disconnect Robot"
@@ -176,7 +187,7 @@ export function ControlPanel({
             onClick={updatefeedbackBySerial}
             className="h-10 bg-blue-600 hover:bg-blue-500 text-white text-sm px-4 py-1.5 rounded"
           >
-            Update Joint Angles
+            Update Real Angles
           </button>
         )}
       </div>
@@ -184,16 +195,14 @@ export function ControlPanel({
       <div className="mt-4 flex flex-col gap-2">
         <button
           onClick={isWebSocketConnected ? handleDisconnectByWebSocket : handleConnectByWebSocket}
-          disabled={connectionStatus !== "idle"}
+          disabled={webSocketConnectionStatus !== "idle"}
           className={`h-10 text-sm px-4 py-1.5 rounded text-white ${
-            !!isWebSocketConnected
-              ? "bg-red-600 hover:bg-red-500"
-              : "bg-blue-600 hover:bg-blue-500"
-          } ${connectionStatus !== "idle" ? "opacity-50 cursor-not-allowed" : ""}`}
+            isWebSocketConnected ? "bg-red-600 hover:bg-red-500" : "bg-blue-600 hover:bg-blue-500"
+          } ${webSocketConnectionStatus !== "idle" ? "opacity-50 cursor-not-allowed" : ""}`}
         >
-          {connectionStatus === "connecting"
+          {webSocketConnectionStatus === "connecting"
             ? "Connecting..."
-            : connectionStatus === "disconnecting"
+            : webSocketConnectionStatus === "disconnecting"
             ? "Disconnecting..."
             : isWebSocketConnected
             ? "Disconnect Robot"
@@ -205,10 +214,16 @@ export function ControlPanel({
             onClick={updatefeedbackByWebSocket}
             className="h-10 bg-blue-600 hover:bg-blue-500 text-white text-sm px-4 py-1.5 rounded"
           >
-            Update Joint Angles
+            Update Real Angles
           </button>
         )}
       </div>
+
+      <SettingsWebSocketModal
+        show={showWsModal}
+        onClose={() => setShowWsModal(false)}
+        onConfirm={handleConfirmWsModal}
+      />     
     </div>
   );
 }

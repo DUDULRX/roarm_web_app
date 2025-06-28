@@ -2,10 +2,10 @@
  * Control virtual degree with this hook, the real degree is auto managed
  */
 
-import { useState, useCallback, useEffect } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { nan } from "zod";
 import { Roarm } from "roarm-sdk";
-import { RosWebSocketClient } from "@/hooks/useRosWebSocketClient";
+import { useWebSocketClient } from "@/hooks/useWebSocketClient"; 
 import { json } from "stream/consumers";
 
 // import { JointDetails } from "@/components/RobotLoader"; // <-- IMPORT JointDetails type
@@ -42,12 +42,14 @@ export type UpdateJointsDegrees = (
 
 export function useRobotControl(
   initialJointDetails: JointDetails[],
-  roarm: Roarm | null,
-  rosClient: RosWebSocketClient | null, 
+  robotName: string,
 ) {
   const [isSerialConnected, setIsSerialConnected] = useState(false);
   const [isWebSocketConnected, setIsWebSocketConnected] = useState(false);
   const [jointDetails, setJointDetails] = useState(initialJointDetails);
+  const wsClient = useWebSocketClient();
+  const roarmRef = useRef<Roarm | null>(null);
+  const roarm = roarmRef.current;
 
   // Joint states
   const [jointStates, setJointStates] = useState<JointState[]>(
@@ -65,6 +67,16 @@ export function useRobotControl(
 
   // Store initial positions of servos
   const [initialPositions, setInitialPositions] = useState<number[]>([]);
+
+  // Initialize Roarm instance
+  useEffect(() => {
+    if (!roarmRef.current) {
+      roarmRef.current = new Roarm({
+        roarm_type: robotName,
+        baudrate: "115200",
+      });
+    }
+  }, [robotName]); 
 
   useEffect(() => {
     setJointStates(
@@ -98,14 +110,13 @@ export function useRobotControl(
             const newStates = [...jointStates];
             for (let i = 0; i < newStates.length; i++) {
               if (typeof angles[i] === 'number') {
+                newStates[i].virtualDegrees = angles[i];
                 newStates[i].realDegrees = angles[i];
               } else {
                 newStates[i].realDegrees = "N/A"; 
               }
             }
-            // Enable torque for revolute servos
-            roarm.torque_set(1);
-          
+            // Enable torque for revolute servos          
         } catch (error) {
           console.error(`Failed to initialize joint ${jointDetails[i].servoId}:`, error);
           initialPos.push(0);
@@ -116,6 +127,7 @@ export function useRobotControl(
       }
       setInitialPositions(initialPos);
       setJointStates(newStates);
+      roarm.torque_set(1);
     } catch (error) {
       console.error("Failed to connect to the robot:", error);
     }
@@ -124,15 +136,13 @@ export function useRobotControl(
   const disconnectRobotBySerial = useCallback(async () => {
     try {
       // Disable torque for revolute servos and set wheel speed to 0 for continuous servos
-      for (let i = 0; i < jointDetails.length; i++) {
-        try {
-          roarm.torque_set(0);
-        } catch (error) {
-          console.error(
-            `Failed to reset joint ${jointDetails[i].servoId} during disconnect:`,
-            error
-          );
-        }
+      try {
+        roarm.torque_set(0);
+      } catch (error) {
+        console.error(
+          `Failed to reset joint ${jointDetails[i].servoId} during disconnect:`,
+          error
+        );
       }
 
       await roarm.disconnect();
@@ -153,29 +163,27 @@ export function useRobotControl(
   }, [jointDetails]);
 
     // Connect to the robot
-  const connectRobotByWebSocket = useCallback(async () => {
+  const connectRobotByWebSocket = useCallback(async (url: string) => {
     try {
+      await wsClient.connect(url);
       setIsWebSocketConnected(true);
+      wsClient.torque_set(1);
       console.log("Robot connected by WebSocket successfully.");
-      let angles = rosClient.joints_angle_get();
-      angles = [0,0,0,0,0,0]; // Mock angles for testing
+      const angles = await wsClient.joints_angle_get();
       const newStates = [...jointStates];
       const initialPos: number[] = [];
       for (let i = 0; i < jointDetails.length; i++) {
         try {
             initialPos.push(...angles);
-            // newStates[i].realDegrees = angles;
-            const newStates = [...jointStates];
             for (let i = 0; i < newStates.length; i++) {
               if (typeof angles[i] === 'number') {
+                newStates[i].virtualDegrees = Math.round(angles[i]);
                 newStates[i].realDegrees = angles[i];
               } else {
                 newStates[i].realDegrees = "N/A"; 
               }
             }
-            // Enable torque for revolute servos
-            rosClient.torque_set(1);
-          
+            // Enable torque for revolute servos          
         } catch (error) {
           console.error(`Failed to initialize joint ${jointDetails[i].servoId}:`, error);
           initialPos.push(0);
@@ -194,16 +202,15 @@ export function useRobotControl(
   const disconnectRobotByWebSocket = useCallback(async () => {
     try {
       // Disable torque for revolute servos and set wheel speed to 0 for continuous servos
-      for (let i = 0; i < jointDetails.length; i++) {
-        try {
-          rosClient.torque_set(0);
-        } catch (error) {
-          console.error(
-            `Failed to reset joint ${jointDetails[i].servoId} during disconnect:`,
-            error
-          );
-        }
+      try {
+        wsClient.torque_set(0);
+      } catch (error) {
+        console.error(
+          `Failed to reset joint ${jointDetails[i].servoId} during disconnect:`,
+          error
+        );
       }
+      wsClient.disconnect();
       setIsWebSocketConnected(false);
       console.log("Robot disconnected successfully.");
 
@@ -246,6 +253,7 @@ export function useRobotControl(
           }
         }
       }
+      setInitialPositions(initialPos);
       setJointStates(newStates);
     } catch (error) {
       console.error("Failed to update feedback to the robot:", error);
@@ -256,7 +264,7 @@ export function useRobotControl(
     try {
       const newStates = [...jointStates];
       const initialPos: number[] = [];
-      const angles = await rosClient.joints_angle_get();
+      const angles = await wsClient.joints_angle_get();
       // angles = [0,0,0,0,0,0]; // Mock angles for testing
 
       for (let i = 0; i < jointDetails.length; i++) {
@@ -266,6 +274,7 @@ export function useRobotControl(
             const newStates = [...jointStates];
             for (let i = 0; i < newStates.length; i++) {
               if (typeof angles[i] === 'number') {
+                // newStates[i].virtualDegrees = angles[i];
                 newStates[i].realDegrees = angles[i];
               } else {
                 newStates[i].realDegrees = "N/A"; 
@@ -279,6 +288,7 @@ export function useRobotControl(
           }
         }
       }
+      setInitialPositions(initialPos);
       setJointStates(newStates);
     } catch (error) {
       console.error("Failed to update feedback to the robot:", error);
@@ -300,13 +310,11 @@ export function useRobotControl(
           try {
             if (!Number.isNaN(value)) {
               if (isSerialConnected) {
-                  roarm.joint_angle_ctrl(servoId, value,0,0);
+                roarm.joint_angle_ctrl(servoId, value,0,0);
               }
               else if (isWebSocketConnected) {
-                rosClient.joint_angle_ctrl([servoId, value]);
-              }
-              // const angles = await roarm.joints_angle_get()
-              // newStates[jointIndex].realDegrees = angles[jointIndex]; // Update relative realDegrees
+                wsClient.joint_angle_ctrl([servoId, value]);
+              }      
             }
           } catch (error) {
             console.error(
@@ -317,7 +325,6 @@ export function useRobotControl(
             // newStates[jointIndex].realDegrees = 'error';
           }
         }
-
         setJointStates(newStates);
       }
     },
@@ -338,8 +345,7 @@ export function useRobotControl(
       });
 
       if (isSerialConnected || isWebSocketConnected) {
-        const anglesArray: number[] = [];
-        // const angles = await roarm.joints_angle_get()
+        const anglesArray: number[] = [];       
 
         jointDetails.forEach((joint) => {
           const jointIndex = newStates.findIndex(
@@ -348,8 +354,7 @@ export function useRobotControl(
           if (jointIndex !== -1) {
             const virtual = newStates[jointIndex].virtualDegrees || 0;
 
-            anglesArray.push(virtual);
-            // newStates[jointIndex].realDegrees = angles[jointIndex];       
+            anglesArray.push(virtual);   
 
           } else {
             anglesArray.push(0);
@@ -366,14 +371,13 @@ export function useRobotControl(
                roarm.joints_angle_ctrl(anglesArray, 0, 0);
              }
              else if(isWebSocketConnected){
-               rosClient.joints_angle_ctrl(anglesArray);
+               wsClient.joints_angle_ctrl(anglesArray);
              }
           }
         } catch (error) {
-          console.error("批量更新舵机角度失败:", error);
+          console.error("Failed to update joint angles:", error);
         }
       }
-
       setJointStates(newStates);
     },
     [jointStates, isSerialConnected, isWebSocketConnected, initialPositions]

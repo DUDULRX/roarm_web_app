@@ -7,7 +7,7 @@ import {
 } from "../../../hooks/useRobotControl";
 import { radiansToDegrees,degreesToRadians } from "../../../lib/utils";
 import { RobotConfig } from "@/config/robotConfig";
-import { roarm_m3, roarm_m2 } from "@/config/roarmSolver"; 
+import {  roarm_m2,roarm_m3 } from "@/config/roarmSolver"; 
 import { StepBack } from "lucide-react";
 
 type RevoluteJointsTableProps = {

@@ -12,14 +12,11 @@ import {
   JointState,
   useRobotControl,
 } from "@/hooks/useRobotControl";
-import { useRosWebSocketClient } from "@/hooks/useRosWebSocketClient"; 
 
 import { Canvas } from "@react-three/fiber";
 import { degreesToRadians } from "@/lib/utils";
 import { ChatControl } from "./ChatControl"; // Import ChatControl component
-import { Roarm } from "roarm-sdk";
 import { TransformControls } from "@react-three/drei";
-import { initRoarm } from './controlPanel/roarmInstance.js';
 
 export type JointDetails = {
   name: string;
@@ -171,13 +168,6 @@ function Loader() {
 export default function RobotLoader({ robotName }: RobotLoaderProps) {
   const [jointDetails, setJointDetails] = useState<JointDetails[]>([]);
   const config = robotConfigMap[robotName];
-  const roarmRef = useRef<Roarm | null>(null);
-  
-  const rosClient = useRosWebSocketClient();
-
-  useEffect(() => {
-  roarmRef.current = initRoarm(robotName, 115200); // 初始化一次
-}, [robotName]);
 
   if (!config) {
     throw new Error(`Robot configuration for "${robotName}" not found.`);
@@ -206,7 +196,7 @@ export default function RobotLoader({ robotName }: RobotLoaderProps) {
     setJointDetails: updateJointDetails,
     updateJointDegrees,
     updateJointsDegrees,
-  } = useRobotControl(jointDetails, roarmRef.current, rosClient);
+  } = useRobotControl(jointDetails, robotName);
 
   useEffect(() => {
     updateJointDetails(jointDetails);

@@ -8,55 +8,79 @@ from serial import SerialException
 ROARM_TYPE = os.environ.get('ROARM_MODEL', 'roarm_m3')
 SERIAL_PORT = '/dev/ttyUSB0'
 BAUD_RATE = 115200
-WS_SERVER = 'ws://localhost:9090'  # WebSocket 服务器地址
+WS_SERVER = 'ws://localhost:9090'
 
-# 初始化 roarm 实例
-roarm_device = roarm(roarm_type=ROARM_TYPE, port=SERIAL_PORT, baudrate=BAUD_RATE)
+roarm = roarm(roarm_type=ROARM_TYPE, port=SERIAL_PORT, baudrate=BAUD_RATE)
 
-async def handle_ws():
+latest_commands = {}
+command_event = asyncio.Event()
+command_lock = asyncio.Lock()
+
+async def handle_get_angles(args, websocket):
+    angles = roarm.joints_angle_get()
+    await websocket.send(json.dumps({"type": "feedback", "data": angles}))
+
+async def handle_torque_set(args, websocket):
+    roarm.torque_set(int(args[0]))
+    angles = roarm.joints_angle_get()
+    await websocket.send(json.dumps({"type": "feedback", "data": angles}))
+
+async def handle_joint_angle_ctrl(args, websocket):
+    roarm.joint_angle_ctrl(int(args[0]), args[1], speed=1000, acc=50)
+    angles = roarm.joints_angle_get()
+    await websocket.send(json.dumps({"type": "feedback", "data": angles}))
+
+async def handle_joints_angle_ctrl(args, websocket):
+    roarm.joints_angle_ctrl(angles=args, speed=1000, acc=50)
+    angles = roarm.joints_angle_get()
+    await websocket.send(json.dumps({"type": "feedback", "data": angles}))
+
+COMMAND_HANDLERS = {
+    105: handle_get_angles,
+    210: handle_torque_set,
+    121: handle_joint_angle_ctrl,
+    122: handle_joints_angle_ctrl,
+}
+
+async def websocket_listener():
     async with websockets.connect(WS_SERVER) as websocket:
-
-        while True:
+        async for message in websocket:
             try:
-                message = await websocket.recv()
-
                 data = json.loads(message)
-                if not isinstance(data, list):
-                    continue
-
-                cmd = int(data[0])
-                args = data[1:]
-
-                if cmd == 105:
-                    angles = roarm_device.joints_angle_get()
-                    # 回复前端
-                    feedback = json.dumps({
-                        "type": "feedback",
-                        "data": angles
-                    })
-                    await websocket.send(feedback)
-
-                elif cmd == 210:
-                    roarm_device.torque_set(int(args[0]))
-                    roarm_device.feedback_get()
-
-                elif cmd == 121:
-                    roarm_device.joint_angle_ctrl(args[0], args[1])
-                    roarm_device.feedback_get()
-
-                elif cmd == 122:
-                    roarm_device.joints_angle_ctrl(angles=args, speed=1000, acc=50)
-                    roarm_device.feedback_get()
-
-                else:
-                    print(f"❓ 未知命令: {cmd}")
-
+                if isinstance(data, list):
+                    cmd = int(data[0])
+                    async with command_lock:
+                        latest_commands[cmd] = (data[1:], websocket)
+                        command_event.set()
             except json.JSONDecodeError:
-                print("❌ JSON 解析失败")
-            except SerialException as e:
-                print(f"❌ 串口错误: {e}")
+                print("JSON decode error")
             except Exception as e:
-                print(f"❌ 执行错误: {e}")
+                print(f"Listener error: {e}")
+
+async def command_executor():
+    while True:
+        await command_event.wait()
+        command_event.clear()
+
+        async with command_lock:
+            commands_to_run = latest_commands.copy()
+            latest_commands.clear()
+
+        for cmd, (args, websocket) in commands_to_run.items():
+            handler = COMMAND_HANDLERS.get(cmd)
+            if handler:
+                try:
+                    await handler(args, websocket)
+                except Exception as e:
+                    print(f"Error handling cmd {cmd}: {e}")
+            else:
+                print(f"Unknown command: {cmd}")
+
+async def main():
+    await asyncio.gather(
+        websocket_listener(),
+        command_executor()
+    )
 
 if __name__ == "__main__":
-    asyncio.run(handle_ws())
+    asyncio.run(main())
