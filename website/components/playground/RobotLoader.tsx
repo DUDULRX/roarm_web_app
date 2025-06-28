@@ -171,7 +171,11 @@ export default function RobotLoader({ robotName }: RobotLoaderProps) {
   const [jointDetails, setJointDetails] = useState<JointDetails[]>([]);
   const config = robotConfigMap[robotName];
   const roarmRef = useRef<Roarm | null>(null);
-  roarmRef.current = new Roarm({roarm_type: robotName,baudrate: "115200"});
+  useEffect(() => {
+    if (!roarmRef.current) {
+      roarmRef.current = new Roarm({ roarm_type: robotName, baudrate: "115200" });
+    }
+  }, [robotName]);
 
   if (!config) {
     throw new Error(`Robot configuration for "${robotName}" not found.`);
