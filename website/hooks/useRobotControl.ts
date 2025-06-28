@@ -96,7 +96,10 @@ export function useRobotControl(
   const connectRobotBySerial = useCallback(async () => {
     try {
       if (!roarmRef.current) {
-      roarmRef.current = new Roarm({ ... });
+      roarmRef.current = new Roarm({
+        roarm_type: robotName,
+        baudrate: "115200",
+      });
       }
       await roarmRef.current.connect();
       setIsSerialConnected(true);
