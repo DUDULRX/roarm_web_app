@@ -42,13 +42,12 @@ export type UpdateJointsDegrees = (
 
 export function useRobotControl(
   initialJointDetails: JointDetails[],
-  robotName: string,
+  roarm: Roarm | null,
 ) {
   const [isSerialConnected, setIsSerialConnected] = useState(false);
   const [isWebSocketConnected, setIsWebSocketConnected] = useState(false);
   const [jointDetails, setJointDetails] = useState(initialJointDetails);
   const wsClient = useWebSocketClient();
-  const roarmRef = useRef<Roarm | null>(null);
 
   // Joint states
   const [jointStates, setJointStates] = useState<JointState[]>(
@@ -85,16 +84,10 @@ export function useRobotControl(
   // Connect to the robot
   const connectRobotBySerial = useCallback(async () => {
     try {
-      if (!roarmRef.current) {
-      roarmRef.current = new Roarm({
-        roarm_type: robotName,
-        baudrate: "115200",
-      });
-      }
-      await roarmRef.current.connect();
+      await roarm.connect();
       setIsSerialConnected(true);
       console.log("Robot connected by serial successfully.");
-      const angles = await roarmRef.current.joints_angle_get();
+      const angles = await roarm.joints_angle_get()
 
       const newStates = [...jointStates];
       const initialPos: number[] = [];
@@ -122,26 +115,25 @@ export function useRobotControl(
       }
       setInitialPositions(initialPos);
       setJointStates(newStates);
-      roarmRef.current.torque_set(1);
+      roarm.torque_set(1);
     } catch (error) {
       console.error("Failed to connect to the robot:", error);
     }
   }, [jointStates, jointDetails]);
   // Disconnect from the robot
   const disconnectRobotBySerial = useCallback(async () => {
-    const roarm = roarmRef.current;
-    if (!roarm) return;
     try {
       // Disable torque for revolute servos and set wheel speed to 0 for continuous servos
       try {
         roarm.torque_set(0);
-        await roarm.disconnect();
       } catch (error) {
         console.error(
           `Failed to reset joint during disconnect:`,
           error
         );
-      }  
+      }
+
+      await roarm.disconnect();
       setIsSerialConnected(false);
       console.log("Robot disconnected successfully.");
 
@@ -162,7 +154,7 @@ export function useRobotControl(
     try {
       const newStates = [...jointStates];
       const initialPos: number[] = [];
-      const angles = await roarmRef.current.joints_angle_get();
+      const angles = await roarm.joints_angle_get()
 
       for (let i = 0; i < jointDetails.length; i++) {
         try {
@@ -306,7 +298,7 @@ export function useRobotControl(
           try {
             if (!Number.isNaN(value)) {
               if (isSerialConnected) {
-                roarmRef.current.joint_angle_ctrl(servoId, value,0,0);
+                roarm.joint_angle_ctrl(servoId, value,0,0);
               }
               else if (isWebSocketConnected) {
                 wsClient.joint_angle_ctrl([servoId, value]);
@@ -364,7 +356,7 @@ export function useRobotControl(
             anglesArray.every(a => !isNaN(a))
           ) {
              if(isSerialConnected){
-               roarmRef.current.joints_angle_ctrl(anglesArray, 0, 0);
+               roarm.joints_angle_ctrl(anglesArray, 0, 0);
              }
              else if(isWebSocketConnected){
                wsClient.joints_angle_ctrl(anglesArray);
