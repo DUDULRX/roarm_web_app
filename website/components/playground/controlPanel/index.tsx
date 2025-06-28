@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import {
   JointState,
   UpdateJointDegrees,
@@ -10,6 +10,7 @@ import { RevoluteJointsTable  } from "./RevoluteJointsTable"; // Updated import 
 import DirectionButton from "./DirectionButton";
 import { RobotConfig } from "@/config/robotConfig";
 import { SettingsWebSocketModal } from "./SettingsWebSocketModal"; // Import the modal component
+import { Roarm } from "roarm-sdk";
 
 // --- Control Panel Component ---
 type ControlPanelProps = {
@@ -19,7 +20,7 @@ type ControlPanelProps = {
   isSerialConnected: boolean;
   isWebSocketConnected: boolean;
   robotName: string;
-  connectRobotBySerial: () => void;
+  connectRobotBySerial: (roarm: Roarm | null) => void;
   disconnectRobotBySerial: () => void;
   connectRobotByWebSocket: (url: string) => void;
   disconnectRobotByWebSocket: () => void;
@@ -54,11 +55,16 @@ export function ControlPanel({
     "idle" | "connecting" | "disconnecting"
   >("idle");
   const [showWsModal, setShowWsModal] = useState(false);
-  
+  const roarmRef = useRef<Roarm | null>(null);
+
   const handleConnectBySerial = async () => {
     setSerialConnectionStatus("connecting");
     try {
-      await connectRobotBySerial();
+      if (!roarmRef.current) {
+        roarmRef.current = new Roarm({ roarm_type: robotName, baudrate: "115200" });
+        console.log(roarmRef.current);
+      }      
+      await connectRobotBySerial(roarmRef.current);
     } finally {
       setSerialConnectionStatus("idle");
     }

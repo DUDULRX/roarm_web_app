@@ -17,8 +17,6 @@ import { Canvas } from "@react-three/fiber";
 import { degreesToRadians } from "@/lib/utils";
 import { ChatControl } from "./ChatControl"; // Import ChatControl component
 import { TransformControls } from "@react-three/drei";
-import { Roarm } from "roarm-sdk";
-import { roarm_m2 } from "@/config/roarmSolver";
 
 export type JointDetails = {
   name: string;
@@ -170,12 +168,6 @@ function Loader() {
 export default function RobotLoader({ robotName }: RobotLoaderProps) {
   const [jointDetails, setJointDetails] = useState<JointDetails[]>([]);
   const config = robotConfigMap[robotName];
-  const roarmRef = useRef<Roarm | null>(null);
-  useEffect(() => {
-    if (!roarmRef.current) {
-      roarmRef.current = new Roarm({ roarm_type: robotName, baudrate: "115200" });
-    }
-  }, [robotName]);
 
   if (!config) {
     throw new Error(`Robot configuration for "${robotName}" not found.`);
@@ -204,7 +196,7 @@ export default function RobotLoader({ robotName }: RobotLoaderProps) {
     setJointDetails: updateJointDetails,
     updateJointDegrees,
     updateJointsDegrees,
-  } = useRobotControl(jointDetails, roarmRef.current);
+  } = useRobotControl(jointDetails);
 
   useEffect(() => {
     updateJointDetails(jointDetails);
