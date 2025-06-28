@@ -67,16 +67,6 @@ export function useRobotControl(
   // Store initial positions of servos
   const [initialPositions, setInitialPositions] = useState<number[]>([]);
 
-  // Initialize Roarm instance
-  useEffect(() => {
-    if (!roarmRef.current) {
-      roarmRef.current = new Roarm({
-        roarm_type: robotName,
-        baudrate: "115200",
-      });
-    }
-  }, [robotName]); 
-
   useEffect(() => {
     setJointStates(
       jointDetails.map((j, index) => ({
@@ -139,22 +129,19 @@ export function useRobotControl(
   }, [jointStates, jointDetails]);
   // Disconnect from the robot
   const disconnectRobotBySerial = useCallback(async () => {
+    const roarm = roarmRef.current;
+    if (!roarm) return;
     try {
       // Disable torque for revolute servos and set wheel speed to 0 for continuous servos
       try {
-        roarmRef.current.torque_set(0);
+        roarm.current.torque_set(0);
+        await roarm.disconnect();
       } catch (error) {
         console.error(
           `Failed to reset joint during disconnect:`,
           error
         );
-      }
-
-      await roarmRef.current.disconnect();
-      if (roarmRef.current) {
-        await roarmRef.current.disconnect();
-        roarmRef.current = null;
-      }      
+      }  
       setIsSerialConnected(false);
       console.log("Robot disconnected successfully.");
 
