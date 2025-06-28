@@ -148,6 +148,10 @@ export function useRobotControl(
       }
 
       await roarmRef.current.disconnect();
+      if (roarmRef.current) {
+        await roarmRef.current.disconnect();
+        roarmRef.current = null;
+      }      
       setIsSerialConnected(false);
       console.log("Robot disconnected successfully.");
 
