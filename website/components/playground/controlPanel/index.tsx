@@ -141,7 +141,7 @@ export function ControlPanel({
     return () => {
       active = false;
     };
-  }, [isSyncing, TorqueSet]);
+  }, [isSyncing, updateAngles, TorqueSet]);
 
   // Separate jointStates into revolute and continuous categories
   const revoluteJoints = jointStates.filter(
@@ -191,29 +191,33 @@ export function ControlPanel({
       )}
 
       {/* Connection Controls */}
-      <ConnectionControlSection
-        title="Serial"
-        isConnected={isSerialConnected}
-        isSyncing={isSyncing}
-        isConnecting={serialConnectionStatus === "connecting"}
-        isDisconnecting={serialConnectionStatus === "disconnecting"}
-        onConnect={() => handleConnect("Serial")}
-        onDisconnect={() => handleDisconnect("Serial")}
-        onUpdateRealAngles={handleUpdateRealAngles}
-        onToggleSync={() => setIsSyncing(prev => !prev)}
-      />
+      {!isWebSocketConnected && (
+        <ConnectionControlSection
+          title="Serial"
+          isConnected={isSerialConnected}
+          isSyncing={isSyncing}
+          isConnecting={serialConnectionStatus === "connecting"}
+          isDisconnecting={serialConnectionStatus === "disconnecting"}
+          onConnect={() => handleConnect("Serial")}
+          onDisconnect={() => handleDisconnect("Serial")}
+          onUpdateRealAngles={handleUpdateRealAngles}
+          onToggleSync={() => setIsSyncing(prev => !prev)}
+        />
+      )}
 
-      <ConnectionControlSection
-        title="WebSocket"
-        isConnected={isWebSocketConnected}
-        isSyncing={isSyncing}
-        isConnecting={webSocketConnectionStatus === "connecting"}
-        isDisconnecting={webSocketConnectionStatus === "disconnecting"}
-        onConnect={() => handleConnect("WebSocket")}
-        onDisconnect={() => handleDisconnect("WebSocket")}
-        onUpdateRealAngles={handleUpdateRealAngles}
-        onToggleSync={() => setIsSyncing(prev => !prev)}
-      />
+      {!isSerialConnected && (
+        <ConnectionControlSection
+          title="WebSocket"
+          isConnected={isWebSocketConnected}
+          isSyncing={isSyncing}
+          isConnecting={webSocketConnectionStatus === "connecting"}
+          isDisconnecting={webSocketConnectionStatus === "disconnecting"}
+          onConnect={() => handleConnect("WebSocket")}
+          onDisconnect={() => handleDisconnect("WebSocket")}
+          onUpdateRealAngles={handleUpdateRealAngles}
+          onToggleSync={() => setIsSyncing(prev => !prev)}
+        />
+      )}
 
       <SettingsWebSocketModal
         show={showWsModal}
