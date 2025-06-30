@@ -87,44 +87,34 @@ export function useRobotControl(
     try {
       const { roarm, url } = options;
       const newStates = [...jointStates];
-      const initialPos: number[] = [];
       let angles: number[] = [];
-      console.log(options)
       if(roarm && (!url || url.trim() === "")){
         roarmRef.current = roarm;
         await roarmRef.current.connect();
         setIsSerialConnected(true);
+        roarmRef.current.torque_set(1);
         angles = await roarmRef.current.joints_angle_get()
+        console.log("Robot connected by serial successfully.");
       }else if(!roarm && url && url.trim() !== ""){
         await wsClient.connect(url);
         setIsWebSocketConnected(true);
+        wsClient.torque_set(1);
+        angles = await wsClient.joints_angle_get()
+        console.log("Robot connected by websocket successfully.");
       }
 
       for (let i = 0; i < jointDetails.length; i++) {
         try {
-            initialPos.push(angles[i]);
-            // newStates[i].realDegrees = angles;
-            if (typeof angles[i] === 'number') {
-              newStates[i].virtualDegrees = angles[i];
-              newStates[i].realDegrees = angles[i];
-            } else {
-              newStates[i].realDegrees = "N/A"; 
-            }        
+          if (typeof angles[i] === 'number') {
+            newStates[i].virtualDegrees = angles[i];
+            newStates[i].realDegrees = angles[i];
+          }
         } catch (error) {
           console.error(`Failed to initialize joint ${jointDetails[i].servoId}:`, error);
-          initialPos.push(0);
           newStates[i].realDegrees = "error";
         }
       }
-      setInitialPositions(initialPos);
-      setJointStates(newStates);
-      if(roarm && (!url || url.trim() === "")){
-        roarmRef.current.torque_set(1);
-        console.log("Robot connected by serial successfully.");
-      }else if(!roarm && url && url.trim() !== ""){
-        wsClient.torque_set(1);
-        console.log("Robot connected by websocket successfully.");
-      }      
+      setJointStates(newStates);  
     } catch (error) {
       console.error("Failed to connect to the robot:", error);
     }
@@ -254,7 +244,7 @@ export function useRobotControl(
         setJointStates(newStates);
       }
     },
-    [jointStates, isSerialConnected, isWebSocketConnected, initialPositions]
+    [jointStates, isSerialConnected, isWebSocketConnected]
   );
 
   const updateJointsDegrees: UpdateJointsDegrees = useCallback(
