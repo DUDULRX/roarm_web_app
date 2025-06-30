@@ -190,8 +190,11 @@ export default function RobotLoader({ robotName }: RobotLoaderProps) {
     disconnectRobotBySerial,
     connectRobotByWebSocket,
     disconnectRobotByWebSocket,
-    getfeedbackBySerial,
-    getfeedbackByWebSocket,
+    TorqueSet,
+    updateRealAnglesBySerial,
+    updateVirtualAnglesBySerial,
+    updateRealAnglesByWebSocket,
+    updateVirtualAnglesByWebSocket,
     jointStates,
     setJointDetails: updateJointDetails,
     updateJointDegrees,
@@ -241,8 +244,11 @@ export default function RobotLoader({ robotName }: RobotLoaderProps) {
         disconnectRobotBySerial={disconnectRobotBySerial}
         connectRobotByWebSocket={connectRobotByWebSocket}
         disconnectRobotByWebSocket={disconnectRobotByWebSocket}
-        getfeedbackBySerial={getfeedbackBySerial}
-        getfeedbackByWebSocket={getfeedbackByWebSocket}
+        TorqueSet={TorqueSet}
+        updateRealAnglesBySerial={updateRealAnglesBySerial}
+        updateVirtualAnglesBySerial={updateVirtualAnglesBySerial}
+        updateRealAnglesByWebSocket={updateRealAnglesByWebSocket}
+        updateVirtualAnglesByWebSocket={updateVirtualAnglesByWebSocket}
         keyboardControlMap={keyboardControlMap}
         CoordinateControls={CoordinateControls}
       />

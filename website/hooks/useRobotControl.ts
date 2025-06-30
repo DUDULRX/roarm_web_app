@@ -82,6 +82,20 @@ export function useRobotControl(
     );
   }, [jointDetails]);
 
+  const TorqueSet = useCallback((cmd:number) => {
+    try {
+      if (isSerialConnected) {
+        roarmRef.current.torque_set(cmd);
+      }
+      else if (isWebSocketConnected) {
+        wsClient.torque_set(cmd);
+      }  
+    }
+    catch (error) {
+        console.error("Failed to set torque to the robot:", error);
+      }        
+  }, [jointStates, jointDetails]);
+
   // Connect to the robot
   const connectRobotBySerial = useCallback(async (roarmInstance: Roarm) => {
     try {
@@ -152,7 +166,7 @@ export function useRobotControl(
     }
   }, [jointDetails]);
 
-  const getfeedbackBySerial = useCallback(async () => {
+  const updateRealAnglesBySerial = useCallback(async () => {
     try {
       const newStates = [...jointStates];
       const initialPos: number[] = [];
@@ -162,15 +176,11 @@ export function useRobotControl(
         try {
             initialPos.push(...angles);
             // newStates[i].realDegrees = angles;
-            const newStates = [...jointStates];
-            for (let i = 0; i < newStates.length; i++) {
-              if (typeof angles[i] === 'number') {
-                newStates[i].realDegrees = angles[i];
-              } else {
-                newStates[i].realDegrees = "N/A"; 
-              }
+            if (typeof angles[i] === 'number') {
+              newStates[i].realDegrees = angles[i];
+            } else {
+              newStates[i].realDegrees = "N/A"; 
             }
-          
         } catch (error) {
           console.error(`Failed to initialize joint ${jointDetails[i].servoId}:`, error);
           if (jointDetails[i].jointType === "revolute") {
@@ -183,6 +193,35 @@ export function useRobotControl(
     } catch (error) {
       console.error("Failed to update feedback to the robot:", error);
     }
+  }, [jointStates, jointDetails]);
+
+  const updateVirtualAnglesBySerial = useCallback(async () => {
+    try {
+      const newStates = [...jointStates];
+      const initialPos: number[] = [];
+      const angles = await roarmRef.current.joints_angle_get();
+      // angles = [0,0,0,0,0,0]; // Mock angles for testing
+        roarmRef.current.torque_set(0);
+        for (let i = 0; i < jointDetails.length; i++) {
+          try {
+              initialPos.push(...angles);
+              if (typeof angles[i] === 'number') {
+                newStates[i].virtualDegrees = angles[i];
+                newStates[i].realDegrees = angles[i];
+              } else {
+                newStates[i].realDegrees = "N/A"; 
+              }
+          } catch (error) {
+            console.error(`Failed to initialize joint ${jointDetails[i].servoId}:`, error);
+            newStates[i].realDegrees = "error";
+          }
+        }
+        setInitialPositions(initialPos);
+        setJointStates(newStates);
+      } 
+    catch (error) {
+        console.error("Failed to update feedback to the robot:", error);
+      }        
   }, [jointStates, jointDetails]);
 
     // Connect to the robot
@@ -250,7 +289,7 @@ export function useRobotControl(
     }
   }, [jointDetails]);
 
-  const getfeedbackByWebSocket = useCallback(async () => {
+  const updateRealAnglesByWebSocket = useCallback(async () => {
     try {
       const newStates = [...jointStates];
       const initialPos: number[] = [];
@@ -261,16 +300,12 @@ export function useRobotControl(
         try {
             initialPos.push(...angles);
             // newStates[i].realDegrees = angles;
-            const newStates = [...jointStates];
-            for (let i = 0; i < newStates.length; i++) {
-              if (typeof angles[i] === 'number') {
-                // newStates[i].virtualDegrees = angles[i];
-                newStates[i].realDegrees = angles[i];
-              } else {
-                newStates[i].realDegrees = "N/A"; 
-              }
+            if (typeof angles[i] === 'number') {
+              // newStates[i].virtualDegrees = angles[i];
+              newStates[i].realDegrees = angles[i];
+            } else {
+              newStates[i].realDegrees = "N/A"; 
             }
-          
         } catch (error) {
           console.error(`Failed to initialize joint ${jointDetails[i].servoId}:`, error);
           if (jointDetails[i].jointType === "revolute") {
@@ -283,6 +318,35 @@ export function useRobotControl(
     } catch (error) {
       console.error("Failed to update feedback to the robot:", error);
     }
+  }, [jointStates, jointDetails]);
+
+  const updateVirtualAnglesByWebSocket = useCallback(async () => {
+    try {
+      const newStates = [...jointStates];
+      const initialPos: number[] = [];
+      const angles = await wsClient.joints_angle_get();
+      // angles = [0,0,0,0,0,0]; // Mock angles for testing
+        wsClient.torque_set(0);
+        for (let i = 0; i < jointDetails.length; i++) {
+          try {
+              initialPos.push(...angles);
+              if (typeof angles[i] === 'number') {
+                newStates[i].virtualDegrees = angles[i];
+                newStates[i].realDegrees = angles[i];
+              } else {
+                newStates[i].realDegrees = "N/A"; 
+              }
+          } catch (error) {
+            console.error(`Failed to initialize joint ${jointDetails[i].servoId}:`, error);
+            newStates[i].realDegrees = "error";
+          }
+        }
+        setInitialPositions(initialPos);
+        setJointStates(newStates);
+      } 
+    catch (error) {
+        console.error("Failed to update feedback to the robot:", error);
+      }        
   }, [jointStates, jointDetails]);
 
   // Update revolute joint degrees
@@ -380,8 +444,11 @@ export function useRobotControl(
     disconnectRobotBySerial,
     connectRobotByWebSocket,
     disconnectRobotByWebSocket,
-    getfeedbackBySerial,
-    getfeedbackByWebSocket,
+    TorqueSet,
+    updateRealAnglesBySerial,
+    updateVirtualAnglesBySerial,
+    updateRealAnglesByWebSocket,
+    updateVirtualAnglesByWebSocket,
     jointStates,
     updateJointDegrees,
     updateJointsDegrees,
