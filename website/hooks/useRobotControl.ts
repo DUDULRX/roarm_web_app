@@ -64,9 +64,6 @@ export function useRobotControl(
     }))
   );
 
-  // Store initial positions of servos
-  const [initialPositions, setInitialPositions] = useState<number[]>([]);
-
   useEffect(() => {
     setJointStates(
       jointDetails.map((j, index) => ({
@@ -295,7 +292,7 @@ export function useRobotControl(
       }
       setJointStates(newStates);
     },
-    [jointStates, isSerialConnected, isWebSocketConnected, initialPositions]
+    [jointStates, isSerialConnected, isWebSocketConnected]
   );
 
   return {
