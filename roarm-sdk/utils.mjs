@@ -150,6 +150,8 @@ export class PortHandler {
     this.packetStartTime = 0;
     this.packetTimeout = 0;
     this.txTimePerByte = 0;
+    this._writeLock = false;  
+    this._pendingWrite = null;
   }
   
   async requestPort() {
@@ -189,11 +191,13 @@ export class PortHandler {
   
   async closePort() {
     if (this.reader) {
+      await this.reader.cancel().catch(() => {}); 
       await this.reader.releaseLock();
       this.reader = null;
     }
     
     if (this.writer) {
+      await this.writer.close().catch(() => {}); 
       await this.writer.releaseLock();
       this.writer = null;
     }
@@ -221,20 +225,50 @@ export class PortHandler {
     return this.baudrate;
   }
   
-  async writePort(data) {
+  // async writePort(data) {
+  //   if (!this.isOpen || !this.writer) {
+  //     return 0;
+  //   }
+    
+  //   try {
+  //     await this.writer.write(data);
+  //     return data.length;
+  //   } catch (err) {
+  //     console.error('Error writing to port:', err);
+  //     return 0;
+  //   }
+  // }
+
+    async writePort(data) {
     if (!this.isOpen || !this.writer) {
       return 0;
     }
-    
-    try {
-      await this.writer.write(data);
+
+    // 更新待写数据为最新
+    this._pendingWrite = data;
+
+    if (this._writeLock) {
       return data.length;
-    } catch (err) {
-      console.error('Error writing to port:', err);
-      return 0;
     }
+
+    this._writeLock = true;
+    while (this._pendingWrite) {
+      const toWrite = this._pendingWrite;
+      this._pendingWrite = null;
+
+      try {
+        await this.writer.write(toWrite);
+        await new Promise(r => setTimeout(r, this.txTimePerByte * toWrite.length));
+      } catch (err) {
+        console.error('Error writing to port:', err);
+        break;
+      }
+    }
+    this._writeLock = false;
+
+    return data.length;
   }
-  
+
   async readPort(length) {
     if (!this.isOpen || !this.reader) {
       return [];
