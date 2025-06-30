@@ -168,7 +168,6 @@ function Loader() {
 export default function RobotLoader({ robotName }: RobotLoaderProps) {
   const [jointDetails, setJointDetails] = useState<JointDetails[]>([]);
   const config = robotConfigMap[robotName];
-
   if (!config) {
     throw new Error(`Robot configuration for "${robotName}" not found.`);
   }
@@ -186,15 +185,10 @@ export default function RobotLoader({ robotName }: RobotLoaderProps) {
   const {
     isSerialConnected,
     isWebSocketConnected,
-    connectRobotBySerial,
-    disconnectRobotBySerial,
-    connectRobotByWebSocket,
-    disconnectRobotByWebSocket,
+    connectRobot,
     TorqueSet,
-    updateRealAnglesBySerial,
-    updateVirtualAnglesBySerial,
-    updateRealAnglesByWebSocket,
-    updateVirtualAnglesByWebSocket,
+    updateAngles,
+    disconnectRobot,
     jointStates,
     setJointDetails: updateJointDetails,
     updateJointDegrees,
@@ -230,7 +224,7 @@ export default function RobotLoader({ robotName }: RobotLoaderProps) {
             jointDetails={jointDetails}
             setJointDetails={setJointDetails}
             jointStates={jointStates}
-          />
+          />        
         </Suspense>
       </Canvas>
       <ControlPanel
@@ -240,15 +234,10 @@ export default function RobotLoader({ robotName }: RobotLoaderProps) {
         isSerialConnected={isSerialConnected}
         isWebSocketConnected={isWebSocketConnected}
         robotName={robotName}
-        connectRobotBySerial={connectRobotBySerial}
-        disconnectRobotBySerial={disconnectRobotBySerial}
-        connectRobotByWebSocket={connectRobotByWebSocket}
-        disconnectRobotByWebSocket={disconnectRobotByWebSocket}
+        connectRobot={connectRobot}
         TorqueSet={TorqueSet}
-        updateRealAnglesBySerial={updateRealAnglesBySerial}
-        updateVirtualAnglesBySerial={updateVirtualAnglesBySerial}
-        updateRealAnglesByWebSocket={updateRealAnglesByWebSocket}
-        updateVirtualAnglesByWebSocket={updateVirtualAnglesByWebSocket}
+        updateAngles={ updateAngles}
+        disconnectRobot={disconnectRobot}
         keyboardControlMap={keyboardControlMap}
         CoordinateControls={CoordinateControls}
       />

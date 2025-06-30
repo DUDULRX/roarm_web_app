@@ -7,9 +7,11 @@ import {
   UpdateJointsDegrees,
 } from "../../../hooks/useRobotControl"; // Adjusted import path
 import { RevoluteJointsTable  } from "./RevoluteJointsTable"; // Updated import path
-import DirectionButton from "./DirectionButton";
-import { RobotConfig } from "@/config/robotConfig";
+import ConnectionControlSection from "./ConnectionSectionButton";
 import { SettingsWebSocketModal } from "./SettingsWebSocketModal"; // Import the modal component
+import DirectionButton from "./DirectionButton";
+
+import { RobotConfig } from "@/config/robotConfig";
 import { Roarm } from "roarm-sdk";
 
 // --- Control Panel Component ---
@@ -20,15 +22,10 @@ type ControlPanelProps = {
   isSerialConnected: boolean;
   isWebSocketConnected: boolean;
   robotName: string;
-  connectRobotBySerial: (roarm: Roarm | null) => void;
-  disconnectRobotBySerial: () => void;
-  connectRobotByWebSocket: (url: string) => void;
-  disconnectRobotByWebSocket: () => void;
-  TorqueSet: (data: number) => void;
-  updateRealAnglesBySerial: () => void;
-  updateVirtualAnglesBySerial: () => void;
-  updateRealAnglesByWebSocket: () => void;
-  updateVirtualAnglesByWebSocket: () => void;
+  connectRobot: (options: { roarm?: Roarm; url?: string }) => Promise<void> | void;
+  TorqueSet: (cmd: number) => void;
+  updateAngles: (type: string) => void;
+  disconnectRobot: () => void;
   keyboardControlMap: RobotConfig["keyboardControlMap"]; // New prop for keyboard control
   CoordinateControls?: RobotConfig["CoordinateControls"]; // Use type from robotConfig
 };
@@ -40,15 +37,10 @@ export function ControlPanel({
   isSerialConnected,
   isWebSocketConnected,
   robotName,
-  connectRobotBySerial,
-  disconnectRobotBySerial,
-  connectRobotByWebSocket,
-  disconnectRobotByWebSocket,
+  connectRobot,
   TorqueSet,
-  updateRealAnglesBySerial,
-  updateVirtualAnglesBySerial,
-  updateRealAnglesByWebSocket,
-  updateVirtualAnglesByWebSocket,
+  updateAngles,
+  disconnectRobot,
   keyboardControlMap, // Destructure new prop
   CoordinateControls, // Destructure new prop
 }: ControlPanelProps) {
@@ -61,48 +53,14 @@ export function ControlPanel({
     "idle" | "connecting" | "disconnecting"
   >("idle");
   const [showWsModal, setShowWsModal] = useState(false);
-  const [isSyncingBySerial, setIsSyncingBySerial] = useState(false);
-  const [isSyncingByWebSocket, setIsSyncingByWebSocket] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
   const roarmRef = useRef<Roarm | null>(null);
-
-  const handleConnectBySerial = async () => {
-    setSerialConnectionStatus("connecting");
-    try {
-      if (!roarmRef.current) {
-        roarmRef.current = new Roarm({ roarm_type: robotName, baudrate: "115200" });
-        console.log(roarmRef.current);
-      }      
-      await connectRobotBySerial(roarmRef.current);
-    } finally {
-      setSerialConnectionStatus("idle");
-    }
-  };
-
-  const handleDisconnectBySerial = async () => {
-    setSerialConnectionStatus("disconnecting");
-    try {
-      await disconnectRobotBySerial();
-    } finally {
-      setSerialConnectionStatus("idle");
-    }
-  };
-
-  const updatefeedbackBySerial = async () => {
-    try {
-      await getfeedbackBySerial();
-    } catch (error) {
-      console.error("Error updating joint angles:", error);
-    }
-  };
-  
-  const handleConnectByWebSocket = () => {
-    setShowWsModal(true);  
-  };
 
   const handleConfirmWsModal = async (inputUrl: string) => {
     try {
       setWebSocketConnectionStatus("connecting");
-      await connectRobotByWebSocket(inputUrl);
+      await connectRobot({ url: inputUrl });
+      console.log(inputUrl);
       localStorage.setItem("ws_server_url", inputUrl);
       setShowWsModal(false);
     } catch (error) {
@@ -113,31 +71,59 @@ export function ControlPanel({
     }
   };
 
-  const handleDisconnectByWebSocket = async () => {
-    setWebSocketConnectionStatus("disconnecting");
-    try {
-      await disconnectRobotByWebSocket();
-    } finally {
-      setWebSocketConnectionStatus("idle");
+  const handleConnect = async (type:string) => {
+    if(type=="Serial"){
+      setSerialConnectionStatus("connecting");
+      try {
+        if (!roarmRef.current) {
+          roarmRef.current = new Roarm({ roarm_type: robotName, baudrate: "115200" });
+          console.log(roarmRef.current);
+        }      
+        await connectRobot({ roarm: roarmRef.current });
+      } finally {
+        setSerialConnectionStatus("idle");
+      }
+    }else if(type=="WebSocket"){
+      setShowWsModal(true);  
     }
   };
 
-  const handleUpdateRealAnglesByWebSocket = async () => {
+  const handleUpdateRealAngles = async () => {
     try {
-      await updateRealAnglesByWebSocket();
+      await updateAngles("Real");
     } catch (error) {
       console.error("Error updating joint angles:", error);
     }
   };
 
+  const handleDisconnect = async (type:string) => {
+    if(type=="Serial"){
+      setSerialConnectionStatus("disconnecting");
+      try {
+        await disconnectRobot();
+      } finally {
+        setSerialConnectionStatus("idle");
+      }
+    }else if(type=="WebSocket"){
+      setWebSocketConnectionStatus("disconnecting");
+      try {
+        await disconnectRobot();
+      } finally {
+        setWebSocketConnectionStatus("idle");
+      }
+    }
+
+  };
+
   useEffect(() => {
     let active = true;
 
-    const loop = async (type:string) => {
+    const loop = async () => {
+      TorqueSet(0);
+
       while (active) {
         try {
-          if(type=="WebSocket"){await updateVirtualAnglesByWebSocket();}
-          else if(type=="Serial")await updateVirtualAnglesBySerial();{}
+          await updateAngles("Virtual");
           await new Promise(resolve => setTimeout(resolve, 200));
         } catch (e) {
           console.error("Loop update failed:", e);
@@ -146,10 +132,8 @@ export function ControlPanel({
       }
     };
 
-    if (isSyncingByWebSocket) {
-      loop("WebSocket");
-    } else if (isSyncingBySerial) {
-      loop("Serial");
+    if (isSyncing) {
+      loop();
     }else {
       TorqueSet(1);
     }
@@ -157,7 +141,7 @@ export function ControlPanel({
     return () => {
       active = false;
     };
-  }, [isSyncingByWebSocket, isSyncingBySerial, updateVirtualAnglesByWebSocket,updateVirtualAnglesBySerial,TorqueSet]);
+  }, [isSyncing, TorqueSet]);
 
   // Separate jointStates into revolute and continuous categories
   const revoluteJoints = jointStates.filter(
@@ -207,80 +191,29 @@ export function ControlPanel({
       )}
 
       {/* Connection Controls */}
-      <div className="mt-4 flex flex-col gap-2">
-        <button
-          onClick={isSerialConnected ? handleDisconnectBySerial : handleConnectBySerial}
-          disabled={serialConnectionStatus !== "idle"}
-          className={`h-10 text-sm px-4 py-1.5 rounded text-white ${
-            !!isSerialConnected
-              ? "bg-red-600 hover:bg-red-500"
-              : "bg-blue-600 hover:bg-blue-500"
-          } ${serialConnectionStatus !== "idle" ? "opacity-50 cursor-not-allowed" : ""}`}
-        >
-          {serialConnectionStatus === "connecting"
-            ? "Connecting..."
-            : serialConnectionStatus === "disconnecting"
-            ? "Disconnecting..."
-            : isSerialConnected
-            ? "Disconnect Robot"
-            : "Connect Real Robot By Serial"}
-        </button>
+      <ConnectionControlSection
+        title="Serial"
+        isConnected={isSerialConnected}
+        isSyncing={isSyncing}
+        isConnecting={serialConnectionStatus === "connecting"}
+        isDisconnecting={serialConnectionStatus === "disconnecting"}
+        onConnect={() => handleConnect("Serial")}
+        onDisconnect={() => handleDisconnect("Serial")}
+        onUpdateRealAngles={handleUpdateRealAngles}
+        onToggleSync={() => setIsSyncing(prev => !prev)}
+      />
 
-        {isSerialConnected && (
-          <button
-            onClick={updatefeedbackBySerial}
-            className="h-10 bg-blue-600 hover:bg-blue-500 text-white text-sm px-4 py-1.5 rounded"
-          >
-            Update Real Angles
-          </button>
-        )}
-
-        {isSerialConnected && (
-          <button
-            onClick={() => setIsSyncingBySerial(prev => !prev)}
-            className={`h-10 ${isSyncingBySerial ? 'bg-red-600 hover:bg-red-500' : 'bg-blue-600 hover:bg-blue-500'} text-white text-sm px-4 py-1.5 rounded`}
-          >
-            {isSyncingBySerial ? 'Stop Update Virtual Angles' : 'Start Update Virtual Angles'}
-          </button>
-        )}
-      </div>
-
-      <div className="mt-4 flex flex-col gap-2">
-        <button
-          onClick={isWebSocketConnected ? handleDisconnectByWebSocket : handleConnectByWebSocket}
-          disabled={webSocketConnectionStatus !== "idle"}
-          className={`h-10 text-sm px-4 py-1.5 rounded text-white ${
-            isWebSocketConnected ? "bg-red-600 hover:bg-red-500" : "bg-blue-600 hover:bg-blue-500"
-          } ${webSocketConnectionStatus !== "idle" ? "opacity-50 cursor-not-allowed" : ""}`}
-        >
-          {webSocketConnectionStatus === "connecting"
-            ? "Connecting..."
-            : webSocketConnectionStatus === "disconnecting"
-            ? "Disconnecting..."
-            : isWebSocketConnected
-            ? "Disconnect Robot"
-            : "Connect Real Robot By WebSocket"}
-        </button>
-
-        {isWebSocketConnected && (
-          <button
-            onClick={handleUpdateRealAnglesByWebSocket}
-            className="h-10 bg-blue-600 hover:bg-blue-500 text-white text-sm px-4 py-1.5 rounded"
-          >
-            Update Real Angles
-          </button>
-        )}
-
-        {isWebSocketConnected && (
-          <button
-            onClick={() => setIsSyncingByWebSocket(prev => !prev)}
-            className={`h-10 ${isSyncingByWebSocket ? 'bg-red-600 hover:bg-red-500' : 'bg-blue-600 hover:bg-blue-500'} text-white text-sm px-4 py-1.5 rounded`}
-          >
-            {isSyncingByWebSocket ? 'Stop Update Virtual Angles' : 'Start Update Virtual Angles'}
-          </button>
-        )}
-
-      </div>
+      <ConnectionControlSection
+        title="WebSocket"
+        isConnected={isWebSocketConnected}
+        isSyncing={isSyncing}
+        isConnecting={webSocketConnectionStatus === "connecting"}
+        isDisconnecting={webSocketConnectionStatus === "disconnecting"}
+        onConnect={() => handleConnect("WebSocket")}
+        onDisconnect={() => handleDisconnect("WebSocket")}
+        onUpdateRealAngles={handleUpdateRealAngles}
+        onToggleSync={() => setIsSyncing(prev => !prev)}
+      />
 
       <SettingsWebSocketModal
         show={showWsModal}
