@@ -157,7 +157,7 @@ export function ControlPanel({
     return () => {
       active = false;
     };
-  }, [isSyncingByWebSocket, updateVirtualAnglesByWebSocket,updateVirtualAnglesBySerial,TorqueSet]);
+  }, [isSyncingByWebSocket, isSyncingBySerial, updateVirtualAnglesByWebSocket,updateVirtualAnglesBySerial,TorqueSet]);
 
   // Separate jointStates into revolute and continuous categories
   const revoluteJoints = jointStates.filter(
