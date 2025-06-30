@@ -46,7 +46,6 @@ class ReadLine {
           console.warn("Serial reader closed.");
           reader.releaseLock();
           return null;
-          // break;
         }
 
         if (value) {
@@ -57,14 +56,14 @@ class ReadLine {
             this.buf = this.buf.slice(-this.maxFrameLength);
           }
 
-          let end = this.buf.indexOf(this.frameEnd);
+          let end = this.buf.lastIndexOf(this.frameEnd);
 
           if (end !== -1) {
-            let start = this.buf.indexOf(this.frameStart);
+            let start = this.buf.lastIndexOf(this.frameStart);
 
             if (start !== -1 && start < end) {
-              const frame = this.buf.slice(start, end + 3);
-              this.buf = this.buf.slice(end + 3);
+              const frame = this.buf.slice(start, end + this.frameEnd.length);
+              this.buf = this.buf.slice(end + this.frameEnd.length);
               return frame;
             }
           }
