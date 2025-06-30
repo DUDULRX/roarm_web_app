@@ -112,14 +112,14 @@ export function RevoluteJointsTable({
 
       const currentCoordinateControls = CoordinateControls || [];
 
-      let updates: { servoId: number; value: number }[] = [];
+      let jointupdates: { servoId: number; value: number }[] = [];
       let hand_joint_rad = 0.0;
       let ikResults: number[] = [];
       let changepose = false;
       // ------------------------
       // 单独关节控制
       // ------------------------
-      updates = currentJoints
+      jointupdates = currentJoints
         .map((joint) => {
           const currentDegrees = joint.virtualDegrees || 0;
           const increaseKey = currentControlMap[joint.servoId!]?.[0];
@@ -173,8 +173,8 @@ export function RevoluteJointsTable({
           roll_joint_rad,
           hand_joint_rad
         );
-      }
 
+      }
       // ------------------------
       // 坐标控制（XYZ控制）
       // ------------------------
@@ -236,8 +236,8 @@ export function RevoluteJointsTable({
           }
           changepose=false;
         }
-
-      updates = currentJoints
+      // coord.virtualCoordinate = (coord.virtualCoordinate ?? 0) + delta;
+      jointupdates = currentJoints
         .map((joint, idx) => {
           const deg = radiansToDegrees(ikResults[idx]);
           const lowerLimit = radiansToDegrees(joint.limit?.lower ?? -Infinity);
@@ -251,9 +251,9 @@ export function RevoluteJointsTable({
         .filter((u) => u !== null) as { servoId: number; value: number }[];                
       });
 
-      if (updates.length > 0) {
-        updateJointsDegreesRef.current(updates);
-      } 
+      if (jointupdates.length > 0) {
+        updateJointsDegreesRef.current(jointupdates);
+      }
     };    
     if (pressedKeys.size > 0) {
       intervalId = setInterval(updateJointsBasedOnKeys, KEY_UPDATE_INTERVAL_MS);
@@ -290,7 +290,7 @@ export function RevoluteJointsTable({
           <tr>
             <th className="border-b border-gray-600 pb-1 pr-2">Joint Controls</th>
             <th className="border-b border-gray-600 pb-1 text-center pl-2">
-              Angle
+              Virtual Angle
             </th>
             <th className="border-b border-gray-600 pb-1 text-center pl-2">
               Real Angle
@@ -303,13 +303,11 @@ export function RevoluteJointsTable({
         <tbody>
           {joints.map((detail) => {
             // Use `joints` prop for rendering current state
-            const decreaseKey = keyboardControlMap[detail.servoId!]?.[1];
             const increaseKey = keyboardControlMap[detail.servoId!]?.[0];
             const isDecreaseActive =
-              decreaseKey && pressedKeys.has(decreaseKey);
+              isReverse && increaseKey && pressedKeys.has(increaseKey);
             const isIncreaseActive =
-              increaseKey && pressedKeys.has(increaseKey);
-
+              !isReverse && increaseKey && pressedKeys.has(increaseKey);
             return (
               <tr key={detail.servoId}>
                 <td className="">
@@ -325,11 +323,11 @@ export function RevoluteJointsTable({
                 </td>
                 <td className="py-1 px-4 flex items-center">
                   <button
-                    onMouseDown={() => handleMouseDown(decreaseKey)}
-                    onMouseUp={() => handleMouseUp(decreaseKey)}
-                    onMouseLeave={() => handleMouseUp(decreaseKey)} // Optional: stop if mouse leaves button while pressed
-                    onTouchStart={() => handleMouseDown(decreaseKey)} // Optional: basic touch support
-                    onTouchEnd={() => handleMouseUp(decreaseKey)} // Optional: basic touch support
+                    onMouseDown={() => handleMouseDown(increaseKey)}
+                    onMouseUp={() => handleMouseUp(increaseKey)}
+                    onMouseLeave={() => handleMouseUp(increaseKey)} // Optional: stop if mouse leaves button while pressed
+                    onTouchStart={() => handleMouseDown(increaseKey)} // Optional: basic touch support
+                    onTouchEnd={() => handleMouseUp(increaseKey)} // Optional: basic touch support
                     className={`${
                       isDecreaseActive
                         ? "bg-blue-600"
@@ -340,7 +338,7 @@ export function RevoluteJointsTable({
                         "polygon(0 50%, 30% 0, 100% 0, 100% 100%, 30% 100%)",
                     }}
                   >
-                    {decreaseKey || "-"}
+                    {"-"}
                   </button>
                   <input
                     type="range"
@@ -391,17 +389,16 @@ export function RevoluteJointsTable({
             <thead>
               <tr>
                 <th className="border-b border-gray-600 pb-2 pr-2 ">Coordinate Controls</th>
-                <th className="border-b border-gray-600 pb-1 text-center px-4"></th>
+                <th className="border-b border-gray-600 pb-1 text-center px-2"></th>
               </tr>
             </thead>
             <tbody>
               {CoordinateControls.map((cm, idx) => {
-                const decreaseKey = cm.keys[1];
                 const increaseKey = cm.keys[0];
                 const isDecreaseActive =
-                  decreaseKey && pressedKeys.has(decreaseKey);
+                  isReverse && increaseKey && pressedKeys.has(increaseKey);
                 const isIncreaseActive =
-                  increaseKey && pressedKeys.has(increaseKey);
+                  !isReverse && increaseKey && pressedKeys.has(increaseKey);
                 return (
                   <tr key={idx}>
                     <td className="font-semibold pr-2 align-top">{cm.name}</td>
@@ -410,11 +407,11 @@ export function RevoluteJointsTable({
                         <span className="space-x-1 flex flex-row">
                           {/* Decrease key */}
                           <button
-                            onMouseDown={() => handleMouseDown(decreaseKey)}
-                            onMouseUp={() => handleMouseUp(decreaseKey)}
-                            onMouseLeave={() => handleMouseUp(decreaseKey)}
-                            onTouchStart={() => handleMouseDown(decreaseKey)}
-                            onTouchEnd={() => handleMouseUp(decreaseKey)}
+                            onMouseDown={() => handleMouseDown(increaseKey)}
+                            onMouseUp={() => handleMouseUp(increaseKey)}
+                            onMouseLeave={() => handleMouseUp(increaseKey)}
+                            onTouchStart={() => handleMouseDown(increaseKey)}
+                            onTouchEnd={() => handleMouseUp(increaseKey)}
                             className={`${
                               isDecreaseActive
                                 ? "bg-blue-600"
@@ -430,7 +427,7 @@ export function RevoluteJointsTable({
                             }}
                             tabIndex={-1}
                           >
-                            {decreaseKey || "-"}
+                            {"-"}
                           </button>
                           {/* Increase key */}
                           <button

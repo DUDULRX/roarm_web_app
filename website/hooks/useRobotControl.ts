@@ -63,7 +63,7 @@ export function useRobotControl(
       limit: j.limit, // Map limit from JointDetails
     }))
   );
-
+  
   useEffect(() => {
     setJointStates(
       jointDetails.map((j, index) => ({
