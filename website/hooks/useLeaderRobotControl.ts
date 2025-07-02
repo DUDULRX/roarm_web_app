@@ -39,19 +39,16 @@ export function useLeaderRobotControl(
   const connectRobot = useCallback(async (options: { roarm?: Roarm; url?: string }) => {
     try {
       const { roarm, url } = options;
-      let angles: number[] = [];
       if(roarm && (!url || url.trim() === "")){
         roarmRef.current = roarm;
         await roarmRef.current.connect();
         setIsSerialConnected(true);
         roarmRef.current.torque_set(0);
-        angles = await roarmRef.current.joints_angle_get()
         console.log("Robot connected by serial successfully.");
       }else if(!roarm && url && url.trim() !== ""){
         await wsClient.connect(url);
         setIsWebSocketConnected(true);
         wsClient.torque_set(0);
-        angles = await wsClient.joints_angle_get()
         console.log("Robot connected by websocket successfully.");
       }
  
@@ -76,7 +73,7 @@ export function useLeaderRobotControl(
         console.log("Disconnecting robot via WebSocket...");
         try {
           wsClient.torque_set(0);
-          wsClient.disconnect(); 
+          await wsClient.disconnect(); 
           setIsWebSocketConnected(false);
         } catch (err) {
           console.error("WebSocket disconnect or torque set failed:", err);
