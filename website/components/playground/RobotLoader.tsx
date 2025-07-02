@@ -1,22 +1,26 @@
 "use client";
 
-import { useEffect, useState, Suspense, useRef } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { robotConfigMap } from "@/config/robotConfig";
 import * as THREE from "three";
-import { useFrame, useThree } from "@react-three/fiber";
-import URDFLoader, { URDFRobot, URDFJoint } from "urdf-loader";
-import { OrbitControls, Html, useProgress } from "@react-three/drei";
-import { GroundPlane } from "./GroundPlane";
-import { ControlPanel } from "./controlPanel/index";
-import {
-  JointState,
-  useRobotControl,
-} from "@/hooks/useRobotControl";
-
+import { Html, useProgress } from "@react-three/drei";
+import { ControlPanel } from "./keyboardControl/KeyboardControl";
+import { useRobotControl } from "@/hooks/useRobotControl";
 import { Canvas } from "@react-three/fiber";
-import { degreesToRadians } from "@/lib/utils";
-import { ChatControl } from "./ChatControl"; // Import ChatControl component
-import { TransformControls } from "@react-three/drei";
+import { ChatControl } from "./chatControl/ChatControl"; // Import ChatControl component
+import { LeaderControl }from "../playground/leaderControl/LeaderControl";
+import { useLeaderRobotControl } from "@/hooks/useLeaderRobotControl";
+import { RobotScene } from "./RobotScene";
+import KeyboardControlButton from "../playground/controlButtons/KeyboardControlButton";
+import ChatControlButton from "../playground/controlButtons/ChatControlButton";
+import LeaderControlButton from "../playground/controlButtons/LeaderControlButton";
+import RecordButton from "./controlButtons/RecordButton";
+import RecordControl from "./recordControl/RecordControl";
+import {
+  getPanelStateFromLocalStorage,
+  setPanelStateToLocalStorage,
+} from "@/lib/panelSettings";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 export type JointDetails = {
   name: string;
@@ -28,133 +32,14 @@ export type JointDetails = {
   jointType: "revolute" | "continuous";
 };
 
+export type CoordinateDetails = {
+  name: string;
+  axisId: number;
+};
+
 type RobotLoaderProps = {
   robotName: string;
 };
-
-function RobotScene({
-  robotName,
-  urdfUrl,
-  orbitTarget,
-  jointDetails,
-  setJointDetails,
-  jointStates,
-}: {
-  robotName: string;
-  urdfUrl: string;
-  orbitTarget?: [number, number, number];
-  jointDetails: JointDetails[];
-  setJointDetails: (details: JointDetails[]) => void;
-  jointStates: JointState[]; // Updated type
-}) {
-  const { scene } = useThree();
-  const robotRef = useRef<URDFRobot | null>(null);
-
-  useEffect(() => {
-    const manager = new THREE.LoadingManager();
-    const loader = new URDFLoader(manager);
-
-    loader.load(
-      urdfUrl,
-      (robot) => {
-        robotRef.current = robot;
-
-        const joints: JointDetails[] = [];
-        const details: JointDetails[] = robot.joints
-          ? Object.values(robot.joints)
-              .filter(
-                (
-                  joint
-                ): joint is URDFJoint & {
-                  jointType: "revolute" | "continuous";
-                } =>
-                  joint.jointType === "revolute" ||
-                  joint.jointType === "continuous"
-              )
-              .map((joint) => ({
-                name: joint.name,
-                servoId: robotConfigMap[robotName].jointNameIdMap[joint.name], // Fetch servoId using jointNameIdMap
-                limit: {
-                  // Ensure conversion to primitive number
-                  lower:
-                    joint.limit.lower === undefined
-                      ? undefined
-                      : Number(joint.limit.lower),
-                  upper:
-                    joint.limit.upper === undefined
-                      ? undefined
-                      : Number(joint.limit.upper),
-                },
-                jointType: joint.jointType,
-              }))
-          : [];
-        setJointDetails(details);
-
-        robot.rotateOnAxis(new THREE.Vector3(1, 0, 0), Math.PI / -2);
-        robot.traverse((c) => (c.castShadow = true));
-        robot.updateMatrixWorld(true);
-        const scale = 15;
-        robot.scale.set(scale, scale, scale);
-        scene.add(robot);
-      },
-      undefined,
-      (error) => console.error("Error loading URDF:", error)
-    );
-  }, [robotName, urdfUrl, setJointDetails]);
-
-  useFrame((state, delta) => {
-    if (robotRef.current && robotRef.current.joints) {
-      jointStates.forEach((state) => {
-        const jointObj = robotRef.current!.joints[state.name]; // Use state.name to find the joint
-        if (jointObj) {
-          // Handle non-continuous joints based on target degrees
-          if (
-            state.virtualDegrees !== undefined &&
-            jointObj.jointType !== "continuous"
-          ) {
-            jointObj.setJointValue(degreesToRadians(state.virtualDegrees)); // Convert degrees to radians
-          }
-          // Handle continuous joints based on speed
-          // Assumes state.virtualSpeed is in radians per second
-          else if (
-            state.virtualSpeed !== undefined &&
-            jointObj.jointType === "continuous"
-          ) {
-            // Increment the joint angle based on speed and frame delta time
-            // Assumes jointObj.angle holds the current angle in radians
-            const currentAngle = Number(jointObj.angle) || 0; // Ensure primitive number
-            jointObj.setJointValue(
-              currentAngle + (state.virtualSpeed * delta) / 500
-            );
-          }
-        }
-      });
-      // Depending on how urdf-loader handles updates, you might need this:
-      // robotRef.current.updateMatrixWorld(true);
-    }
-  });
-
-  return (
-    <>
-      <OrbitControls target={orbitTarget || [0, 0.1, 0.1]} />
-      <GroundPlane />
-      <directionalLight
-        castShadow
-        intensity={1}
-        position={[2, 20, 5]}
-        shadow-mapSize-width={1024}
-        shadow-mapSize-height={1024}
-      />
-      <directionalLight
-        intensity={1}
-        position={[-2, 20, -5]}
-        shadow-mapSize-width={1024}
-        shadow-mapSize-height={1024}
-      />
-      <ambientLight intensity={0.4} />
-    </>
-  );
-}
 
 function Loader() {
   const { progress } = useProgress();
@@ -167,17 +52,40 @@ function Loader() {
 
 export default function RobotLoader({ robotName }: RobotLoaderProps) {
   const [jointDetails, setJointDetails] = useState<JointDetails[]>([]);
+  const [coordinateDetails, setCoordinateDetails] = useState<CoordinateDetails[]>([
+  { name: "X", axisId: 0 },
+  { name: "Y", axisId: 1 },
+  { name: "Z", axisId: 2 },
+  { name: "Roll", axisId: 3 },
+  { name: "Pitch", axisId: 4 },
+  ]);  
+  const [showControlPanel, setShowControlPanel] = useState(() => {
+  const stored = getPanelStateFromLocalStorage("keyboardControl", robotName);
+    return stored !== null ? stored : window.innerWidth >= 900;
+  });
+  const [showLeaderControl, setShowLeaderControl] = useState(() => {
+    return getPanelStateFromLocalStorage("leaderControl", robotName) ?? false;
+  });
+  const [showChatControl, setShowChatControl] = useState(() => {
+    return getPanelStateFromLocalStorage("chatControl", robotName) ?? false;
+  });
+  const [showRecordControl, setShowRecordControl] = useState(() => {
+    return getPanelStateFromLocalStorage("recordControl", robotName) ?? false;
+  });
+
   const config = robotConfigMap[robotName];
   if (!config) {
     throw new Error(`Robot configuration for "${robotName}" not found.`);
   }
+
+  // Initialize leader robot control hook
+  const leaderControl = useLeaderRobotControl();
 
   const {
     urdfUrl,
     orbitTarget,
     camera,
     keyboardControlMap,
-    jointNameIdMap,
     CoordinateControls,
     systemPrompt, // <-- Add this line
   } = config; // Extract compoundMovements and systemPrompt
@@ -190,22 +98,82 @@ export default function RobotLoader({ robotName }: RobotLoaderProps) {
     updateAngles,
     disconnectRobot,
     jointStates,
+    coordinateStates,
     setJointDetails: updateJointDetails,
+    setCoordinateDetails: updateCoordinateDetails,
     updateJointDegrees,
     updateJointsDegrees,
-  } = useRobotControl(jointDetails);
+    UpdateCoordinates,
+    isRecording,
+    recordData,
+    startRecording,
+    stopRecording,
+    clearRecordData,
+  } = useRobotControl(jointDetails,coordinateDetails,robotName);
+
+  useEffect(() => {
+    updateCoordinateDetails(coordinateDetails);
+  }, [coordinateDetails, updateCoordinateDetails]);
 
   useEffect(() => {
     updateJointDetails(jointDetails);
   }, [jointDetails, updateJointDetails]);
 
-  // Expose compoundMovements globally for ControlPanel to access
-  if (typeof window !== "undefined") {
-    (window as any).bambotCompoundMovements = config.CoordinateControls;
-  }
+  // Functions to handle panel state changes and localStorage updates
+  const toggleControlPanel = () => {
+    setShowControlPanel((prev) => {
+      const newState = !prev;
+      setPanelStateToLocalStorage("keyboardControl", newState, robotName);
+      return newState;
+    });
+  };
+
+  const toggleLeaderControl = () => {
+    setShowLeaderControl((prev) => {
+      const newState = !prev;
+      setPanelStateToLocalStorage("leaderControl", newState, robotName);
+      return newState;
+    });
+  };
+
+  const toggleChatControl = () => {
+    setShowChatControl((prev) => {
+      const newState = !prev;
+      setPanelStateToLocalStorage("chatControl", newState, robotName);
+      return newState;
+    });
+  };
+
+  const toggleRecordControl = () => {
+    setShowRecordControl((prev) => {
+      const newState = !prev;
+      setPanelStateToLocalStorage("recordControl", newState, robotName);
+      return newState;
+    });
+  };
+
+  const hideControlPanel = () => {
+    setShowControlPanel(false);
+    setPanelStateToLocalStorage("keyboardControl", false, robotName);
+  };
+
+  const hideLeaderControl = () => {
+    setShowLeaderControl(false);
+    setPanelStateToLocalStorage("leaderControl", false, robotName);
+  };
+
+  const hideChatControl = () => {
+    setShowChatControl(false);
+    setPanelStateToLocalStorage("chatControl", false, robotName);
+  };
+
+  const hideRecordControl = () => {
+    setShowRecordControl(false);
+    setPanelStateToLocalStorage("recordControl", false, robotName);
+  };
 
   return (
-    <>
+    <TooltipProvider>
       <Canvas
         shadows
         camera={{
@@ -221,16 +189,19 @@ export default function RobotLoader({ robotName }: RobotLoaderProps) {
             robotName={robotName}
             urdfUrl={urdfUrl}
             orbitTarget={orbitTarget}
-            jointDetails={jointDetails}
             setJointDetails={setJointDetails}
             jointStates={jointStates}
           />        
         </Suspense>
       </Canvas>
       <ControlPanel
+        show={showControlPanel}
+        onHide={hideControlPanel}      
         jointStates={jointStates}
+        coordinateStates={coordinateStates}
         updateJointDegrees={updateJointDegrees}
         updateJointsDegrees={updateJointsDegrees}
+        updateCoordinates={UpdateCoordinates}
         isSerialConnected={isSerialConnected}
         isWebSocketConnected={isWebSocketConnected}
         robotName={robotName}
@@ -241,8 +212,78 @@ export default function RobotLoader({ robotName }: RobotLoaderProps) {
         keyboardControlMap={keyboardControlMap}
         CoordinateControls={CoordinateControls}
       />
-      {/* <ChatControl robotName={robotName} systemPrompt={systemPrompt} /> */}
-    </>
+      
+      {/* <ChatControl 
+      show={showControlPanel}
+      onHide={hideControlPanel}
+      robotName={robotName} 
+      systemPrompt={systemPrompt} 
+      />  */}
+           
+      {/* LeaderControl overlay */}
+      <LeaderControl
+        show={showLeaderControl}
+        onHide={hideLeaderControl}
+        jointDetails={jointDetails}
+        robotName={robotName}
+        leaderControl={leaderControl}        
+        onSync={(leaderAngles: { servoId: number; angle: number }[]) => {
+          const revoluteJoints = jointDetails.filter(
+            (j) => j.jointType === "revolute"
+          );
+          const revoluteServoIds = new Set(
+            revoluteJoints.map((j) => j.servoId)
+          );
+          updateJointsDegrees(
+            leaderAngles
+              .filter((la) => revoluteServoIds.has(la.servoId))
+              .map(
+                ({ servoId, angle }: { servoId: number; angle: number }) => ({
+                  servoId,
+                  value: angle,
+                })
+              )
+          );
+        }}
+      />
+
+      {/* Record Control overlay */}
+      <RecordControl
+        show={showRecordControl}
+        onHide={hideRecordControl}
+        isRecording={isRecording}
+        recordData={recordData}
+        startRecording={startRecording}
+        stopRecording={stopRecording}
+        clearRecordData={clearRecordData}
+        updateJointsDegrees={updateJointsDegrees}
+        jointDetails={jointDetails}
+        leaderControl={leaderControl}
+      />   
+
+      <div className="absolute bottom-5 left-0 right-0"> 
+        <div className="flex justify-center items-center">
+          <div className="flex gap-2 max-w-md">
+            <LeaderControlButton
+              showControlPanel={showLeaderControl}
+              onToggleControlPanel={toggleLeaderControl}
+            /> 
+            <KeyboardControlButton 
+               showControlPanel={showControlPanel}
+               onToggleControlPanel={toggleControlPanel}
+            />
+            {/* <ChatControlButton
+               showControlPanel={showChatControl}
+               onToggleControlPanel={toggleChatControl}
+            /> */}
+            <RecordButton
+               showControlPanel={showRecordControl}
+               onToggleControlPanel={toggleRecordControl}
+            />
+          </div>
+        </div>
+      </div>       
+    </TooltipProvider>
   );
 }
 

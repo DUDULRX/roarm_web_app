@@ -2,11 +2,108 @@
  * Control virtual degree with this hook, the real degree is auto managed
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { nan } from "zod";
 import { Roarm } from "roarm-sdk";
 import { useWebSocketClient } from "@/hooks/useWebSocketClient"; 
 import { json } from "stream/consumers";
+import { degreesToRadians } from "../lib/utils";
+import { roarm_m2,roarm_m3 } from "@/config/roarmSolver"; 
+import { RECORDING_INTERVAL } from "@/config/uiConfig";
+
+export function updateVirtualCoordinatesByVirtualJointStates(
+  jointsRef: React.MutableRefObject<JointState[]>,
+  updatedServoId: number,
+  updatedValue: number,
+  robotName: string,
+  updateCoordinates: UpdateCoordinates
+) {
+  const getDegree = (id: number): number => {
+    const joint = jointsRef.current.find((j) => j.servoId === id);
+    return joint?.servoId === updatedServoId
+      ? updatedValue
+      : joint?.virtualDegrees ?? 0;
+  };
+
+  let pose: number[] = [];
+
+  if (robotName === "roarm_m2") {
+    pose = roarm_m2.computePosbyJointRad(
+      degreesToRadians(getDegree(1)),
+      degreesToRadians(getDegree(2)),
+      degreesToRadians(getDegree(3)),
+      degreesToRadians(getDegree(4))
+    );
+  } else if (robotName === "roarm_m3") {
+    pose = roarm_m3.computePosbyJointRad(
+      degreesToRadians(getDegree(1)),
+      degreesToRadians(getDegree(2)),
+      degreesToRadians(getDegree(3)),
+      degreesToRadians(getDegree(4)),
+      degreesToRadians(getDegree(5)),
+      degreesToRadians(getDegree(6))
+    );
+  }
+
+  const coordinateupdates = pose.map((val, idx) => ({
+    axisId: idx,
+    value: val,
+  }));
+  updateCoordinates(coordinateupdates);
+}
+
+export function updateRealCoordinatesByRealDegrees(
+  joints: JointState[],
+  robotName: string,
+  updateCoordinates: UpdateCoordinates
+) {
+joints.forEach((j) => {
+  console.log(`Joint ${j.servoId}: real=${j.realDegrees}, virtual=${j.virtualDegrees}`);
+});
+
+  const valid = joints.every(j => typeof j.realDegrees === 'number' && !isNaN(j.realDegrees));
+  if (!valid) {
+    console.warn("Invalid realDegrees detected, skipping coordinate update");
+    return;
+  }
+
+  const getRealDegree = (id: number): number => {
+    const joint = joints.find((j) => j.servoId === id);
+    return typeof joint?.realDegrees === "number" ? joint.realDegrees : 0;
+  };
+
+  let pose: number[] = [];
+
+  try {
+    if (robotName === "roarm_m2") {
+      pose = roarm_m2.computePosbyJointRad(
+        degreesToRadians(getRealDegree(1)),
+        degreesToRadians(getRealDegree(2)),
+        degreesToRadians(getRealDegree(3)),
+        degreesToRadians(getRealDegree(4))
+      );
+    } else if (robotName === "roarm_m3") {
+      pose = roarm_m3.computePosbyJointRad(
+        degreesToRadians(getRealDegree(1)),
+        degreesToRadians(getRealDegree(2)),
+        degreesToRadians(getRealDegree(3)),
+        degreesToRadians(getRealDegree(4)),
+        degreesToRadians(getRealDegree(5)),
+        degreesToRadians(getRealDegree(6))
+      );
+    }
+  } catch(e) {
+    console.error("Error computing pose:", e);
+    return;
+  }
+
+  const updates = pose.map((val, idx) => ({
+    axisId: idx,
+    value: val,
+  }));
+
+  updateCoordinates(updates);
+}
 
 // import { JointDetails } from "@/components/RobotLoader"; // <-- IMPORT JointDetails type
 type JointDetails = {
@@ -17,6 +114,18 @@ type JointDetails = {
     lower?: number;
     upper?: number;
   };
+};
+
+type CoordinateDetails = {
+  name: string;
+  axisId: number;
+};
+
+export type CoordinateState = {
+  name: string;
+  axisId: number;
+  virtualCoordinates?: number;
+  realCoordinates?: number | "N/A" | "error";
 };
 
 export type JointState = {
@@ -39,13 +148,26 @@ export type UpdateJointsDegrees = (
   updates: { servoId: number; value: number }[]
 ) => Promise<void>;
 
+export type UpdateCoordinates = (
+  updates: { axisId: number; value: number }[]
+) => Promise<void>;
+
+export type RecordData = number[][]; 
 
 export function useRobotControl(
   initialJointDetails: JointDetails[],
+  initialCoordinateDetails: CoordinateDetails[],
+  robotName: string,
 ) {
   const [isSerialConnected, setIsSerialConnected, ] = useState(false);
   const [isWebSocketConnected, setIsWebSocketConnected] = useState(false);
   const [jointDetails, setJointDetails] = useState(initialJointDetails);
+  const [coordinateDetails, setCoordinateDetails] = useState(initialCoordinateDetails);
+  // Recording state
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordData, setRecordData] = useState<RecordData>([]);
+  const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
   const wsClient = useWebSocketClient();
   const roarmRef = useRef<Roarm | null>(null);
 
@@ -63,7 +185,16 @@ export function useRobotControl(
       limit: j.limit, // Map limit from JointDetails
     }))
   );
-  
+
+  const [coordinateStates, setCoordinateStates] = useState<CoordinateState[]>(
+    coordinateDetails.map((j, index) => ({
+      virtualCoordinates: 0 ,
+      realCoordinates:  "N/A",
+      axisId: j.axisId, // Assign servoId based on index
+      name: j.name, // Map name from JointDetails
+    }))
+  );
+
   useEffect(() => {
     setJointStates(
       jointDetails.map((j, index) => ({
@@ -112,6 +243,7 @@ export function useRobotControl(
         }
       }
       setJointStates(newStates);  
+      updateRealCoordinatesByRealDegreesLocal();
     } catch (error) {
       console.error("Failed to connect to the robot:", error);
     }
@@ -149,8 +281,8 @@ export function useRobotControl(
                     newStates[i].realDegrees = angles[i];
                     break;
                   case "Virtual":
-                    newStates[i].virtualDegrees = angles[i];
                     newStates[i].realDegrees = angles[i];
+                    newStates[i].virtualDegrees = angles[i];
                     break;
                 }
               } else {
@@ -162,6 +294,18 @@ export function useRobotControl(
           }
         }
         setJointStates(newStates);
+        if (type === "Real") {
+          updateRealCoordinatesByRealDegrees(newStates, robotName, UpdateRealCoordinates);
+        } else if (type === "Virtual") {
+          updateVirtualCoordinatesByVirtualJointStates(
+            { current: newStates },  
+            -1,
+            0,
+            robotName,
+            updateCoordinatessRef.current
+          );
+        }
+        updateRealCoordinatesByRealDegrees(newStates, robotName, UpdateRealCoordinates);
       } 
     catch (error) {
         console.error("Failed to update feedback to the robot:", error);
@@ -291,20 +435,124 @@ export function useRobotControl(
         }
       }
       setJointStates(newStates);
+      updateRealCoordinatesByRealDegreesLocal();
     },
     [jointStates, isSerialConnected, isWebSocketConnected]
   );
+
+  const UpdateCoordinates: UpdateCoordinates = useCallback(
+    async (updates) => {
+      setCoordinateStates((prevStates) => {
+        const newStates = [...prevStates];
+        updates.forEach(({ axisId, value }) => {
+          if (typeof axisId !== 'number') return;
+          const jointIndex = newStates.findIndex(
+            (state) => state.axisId === axisId
+          );
+          if (jointIndex !== -1) {
+            newStates[jointIndex].virtualCoordinates = value;
+          }
+        });
+        return newStates;
+      });
+    },
+    [] 
+  );
+
+  const UpdateRealCoordinates: UpdateCoordinates = useCallback(
+    async (updates) => {
+      setCoordinateStates((prevStates) => {
+        const newStates = [...prevStates];
+        updates.forEach(({ axisId, value }) => {
+          if (typeof axisId !== 'number') return;
+          const coordIndex = newStates.findIndex(
+            (state) => state.axisId === axisId
+          );
+          if (coordIndex !== -1) {
+            newStates[coordIndex].realCoordinates = value;
+          }
+        });
+        return newStates;
+      });
+    },
+    []
+  );
+
+  const updateRealCoordinatesByRealDegreesLocal = useCallback(() => {
+    updateRealCoordinatesByRealDegrees(jointStates, robotName, UpdateRealCoordinates);
+  }, [jointStates]);
+
+  const updateCoordinatessRef = useRef<UpdateCoordinates>(() => Promise.resolve());
+
+  useEffect(() => {
+    updateCoordinatessRef.current = UpdateCoordinates;
+  }, [UpdateCoordinates]);
+
+    const startRecording = useCallback(() => {
+    setIsRecording(true);
+    setRecordData([]);
+
+    recordingIntervalRef.current = setInterval(() => {
+      const currentFrame: number[] = [];
+
+      jointDetails.forEach((joint) => {
+        const jointState = jointStates.find(
+          (state) => state.servoId === joint.servoId
+        );
+        if (jointState) {
+          if (joint.jointType === "revolute") {
+            currentFrame.push(jointState.virtualDegrees ?? 0);
+          } 
+        } else {
+          currentFrame.push(0);
+        }
+      });
+
+      setRecordData((prev) => [...prev, currentFrame]);
+    }, RECORDING_INTERVAL);
+  }, [jointDetails, jointStates]);
+
+  const stopRecording = useCallback(() => {
+    setIsRecording(false);
+    if (recordingIntervalRef.current) {
+      clearInterval(recordingIntervalRef.current);
+      recordingIntervalRef.current = null;
+    }
+  }, []);
+
+  const clearRecordData = useCallback(() => {
+    setRecordData([]);
+  }, []);
+
+  // Clean up recording interval on unmount
+  useEffect(() => {
+    return () => {
+      if (recordingIntervalRef.current) {
+        clearInterval(recordingIntervalRef.current);
+      }
+    };
+  }, []);
 
   return {
     isSerialConnected,
     isWebSocketConnected,
     jointStates,
+    coordinateStates,
     connectRobot,
     TorqueSet,
     updateAngles,
     disconnectRobot,
     updateJointDegrees,
     updateJointsDegrees,
+    UpdateCoordinates,
+    UpdateRealCoordinates,
+    updateRealCoordinatesByRealDegreesLocal,
     setJointDetails,
+    setCoordinateDetails,
+    isRecording,
+    recordData,
+    startRecording,
+    stopRecording,
+    clearRecordData,
   };
 }

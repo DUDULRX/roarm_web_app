@@ -46,15 +46,15 @@ export const robotConfigMap: { [key: string]: RobotConfig } = {
     },
     CoordinateControls: [
       {
-        name: "X increase & decrease",
+        name: "X",
         keys: "x",
       },
       {
-        name: "Y increase & decrease",
+        name: "Y",
         keys: "y",
       },
       {
-        name: "Z increase & decrease",
+        name: "Z",
         keys:  "z",
       },             
     ],
@@ -90,23 +90,23 @@ export const robotConfigMap: { [key: string]: RobotConfig } = {
     },
     CoordinateControls: [
       {
-        name: "X increase & decrease",
+        name: "X",
         keys: "x",
       },
       {
-        name: "Y increase & decrease",
+        name: "Y",
         keys: "y",
       },
       {
-        name: "Z increase & decrease",
+        name: "Z",
         keys:  "z",
       },  
       {
-        name: "Roll increase & decrease",
+        name: "Roll",
         keys: "r",
       },
       {
-        name: "Pitch increase & decrease",
+        name: "Pitch",
         keys: "p",
       },                
     ],

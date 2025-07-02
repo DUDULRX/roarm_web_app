@@ -2,6 +2,7 @@ import React from 'react';
 
 interface ConnectionControlSectionProps {
   title: string;
+  type: string;
   isConnected: boolean;
   isSyncing: boolean;
   isConnecting: boolean;
@@ -14,6 +15,7 @@ interface ConnectionControlSectionProps {
 
 const ConnectionControlSection: React.FC<ConnectionControlSectionProps> = ({
   title,
+  type,
   isConnected,
   isSyncing,
   isConnecting,
@@ -47,13 +49,13 @@ const ConnectionControlSection: React.FC<ConnectionControlSectionProps> = ({
         {connectText}
       </button>
 
-      {isConnected && (
+      {type!="leader" && isConnected && (
         <>
           <button
             onClick={onUpdateRealAngles}
             className="h-10 bg-blue-600 hover:bg-blue-500 text-white text-sm px-4 py-1.5 rounded"
           >
-            Update Real Angles
+            Update Real Angles 
           </button>
 
           <button
@@ -62,7 +64,7 @@ const ConnectionControlSection: React.FC<ConnectionControlSectionProps> = ({
               isSyncing ? 'bg-red-600 hover:bg-red-500' : 'bg-blue-600 hover:bg-blue-500'
             } text-white text-sm px-4 py-1.5 rounded`}
           >
-            {isSyncing ? 'Stop Update Virtual Angles' : 'Start Update Virtual Angles'}
+            {isSyncing ? 'Stop Update Virtual Angles By Real Angles' : 'Start Update Virtual Angles By Real Angles'}
           </button>
         </>
       )}

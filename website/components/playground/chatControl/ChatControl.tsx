@@ -9,7 +9,7 @@ import {
   getBaseURLFromLocalStorage,
   getSystemPromptFromLocalStorage,
   getModelFromLocalStorage,
-} from "../../lib/settings";
+} from "../../../lib/settings";
 
 type ChatControlProps = {
   robotName?: string;

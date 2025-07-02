@@ -1,0 +1,34 @@
+const WebSocket = require('ws');
+
+const wss = new WebSocket.Server({ port: 9091 });
+
+const clients = new Set();
+
+wss.on('connection', (ws) => {
+  console.log('[WS] 客户端已连接');
+  clients.add(ws);
+
+  ws.on('message', (message) => {
+    console.log('[WS] 收到消息:', message.toString());
+
+    try {
+      const data = JSON.parse(message.toString());
+
+      clients.forEach((client) => {
+        if (client !== ws && client.readyState === WebSocket.OPEN) {
+          client.send(JSON.stringify(data));
+        }
+      });
+    } catch (err) {
+      console.error('[WS] JSON 解析失败:', err);
+    }
+  });
+  
+  ws.on('close', () => {
+    console.log('[WS] 客户端断开连接');
+    clients.delete(ws);
+  });
+});
+
+console.log('[WS] WebSocket Server 启动在 ws://localhost:9091');
+

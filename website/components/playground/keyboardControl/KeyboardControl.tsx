@@ -1,24 +1,32 @@
 "use client";
 
 import React, { useRef, useState, useEffect } from "react";
+import { Rnd } from "react-rnd";
+import useMeasure from "react-use-measure";
 import {
   JointState,
+  CoordinateState,
   UpdateJointDegrees,
   UpdateJointsDegrees,
+  UpdateCoordinates,
 } from "../../../hooks/useRobotControl"; // Adjusted import path
 import { RevoluteJointsTable  } from "./RevoluteJointsTable"; // Updated import path
-import ConnectionControlSection from "./ConnectionSectionButton";
-import { SettingsWebSocketModal } from "./SettingsWebSocketModal"; // Import the modal component
+import ConnectionControlSection from "../controlButtons/ConnectionSectionButton";
+import { SettingsWebSocketModal } from "../controlButtons/SettingsWebSocketModal"; // Import the modal component
 import DirectionButton from "./DirectionButton";
 
 import { RobotConfig } from "@/config/robotConfig";
 import { Roarm } from "roarm-sdk";
+import { panelStyle } from "@/components/playground/panelStyle";
+import { RobotConnectionHelpDialog } from "./RobotConnectionHelpDialog";
 
 // --- Control Panel Component ---
 type ControlPanelProps = {
   jointStates: JointState[]; // Use JointState type from useRobotControl
+  coordinateStates: CoordinateState[];
   updateJointDegrees: UpdateJointDegrees; // Updated type
   updateJointsDegrees: UpdateJointsDegrees; // Updated type
+  updateCoordinates:UpdateCoordinates;
   isSerialConnected: boolean;
   isWebSocketConnected: boolean;
   robotName: string;
@@ -28,10 +36,16 @@ type ControlPanelProps = {
   disconnectRobot: () => void;
   keyboardControlMap: RobotConfig["keyboardControlMap"]; // New prop for keyboard control
   CoordinateControls?: RobotConfig["CoordinateControls"]; // Use type from robotConfig
+  onHide?: () => void; 
+  show?: boolean; 
 };
 
 export function ControlPanel({
+  show = true,
+  onHide,
   jointStates,
+  coordinateStates,
+  updateCoordinates,
   updateJointDegrees,
   updateJointsDegrees,
   isSerialConnected,
@@ -45,7 +59,6 @@ export function ControlPanel({
   CoordinateControls, // Destructure new prop
 }: ControlPanelProps) {
   const [isForward, setIsForward] = useState(true);
-  const [isCollapsed, setIsCollapsed] = useState(false);
   const [serialConnectionStatus, setSerialConnectionStatus] = useState<
     "idle" | "connecting" | "disconnecting"
   >("idle");
@@ -55,7 +68,20 @@ export function ControlPanel({
   const [showWsModal, setShowWsModal] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const roarmRef = useRef<Roarm | null>(null);
+  const [ref, bounds] = useMeasure();
+  const [hasDragged, setHasDragged] = useState(false);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
 
+  useEffect(() => {
+    if (bounds.height > 0 && !hasDragged) {
+      setPosition((pos) => ({
+        ...pos,
+        x: window.innerWidth - bounds.width - 20,
+        y: window.innerHeight - bounds.height - 20,
+      }));
+    }
+  }, [bounds.height, hasDragged]);
+  
   const handleConfirmWsModal = async (inputUrl: string) => {
     try {
       setWebSocketConnectionStatus("connecting");
@@ -148,29 +174,31 @@ export function ControlPanel({
     (state) => state.jointType === "revolute"
   );
 
-  if (isCollapsed) {
-    return (
-      <div className="absolute bottom-5 left-5 z-50">
-        <button
-          onClick={() => setIsCollapsed(false)}
-          className="bg-gray-700 hover:bg-gray-600 text-white text-sm px-3 py-1.5 rounded"
-        >
-          Show Controls
-        </button>
-      </div>
-    );
-  }
-
   return (
-    <div className="absolute bottom-5 left-5 bg-zinc-900 bg-opacity-80 text-white p-4 rounded-lg max-h-[90vh] overflow-y-auto z-50 text-sm">
-      <h3 className="mt-0 mb-4 border-b border-zinc-600 pb-1 font-bold text-base flex justify-between items-center">
-        <span>Controls</span>
+    <Rnd
+      position={position}
+      onDragStop={(_, d) => {
+        setPosition({ x: d.x, y: d.y });
+        setHasDragged(true);
+      }}
+      bounds="window"
+      className="z-50"
+      style={{ display: show ? undefined : "none" }}
+      dragHandleClassName="drag-handle" 
+    >
+    <div
+        ref={ref}
+        className={"max-h-[90vh] overflow-y-auto text-sm " + panelStyle}
+      >
+        <h3 className=" mt-0 mb-4 border-b border-zinc-600 pb-1 font-bold text-base flex justify-between items-center">
+        <span className=" drag-handle" >Keyboard Controls</span>
         <div>
-          <span>Direction</span>
-          </div>
+          <span className=" drag-handle" >Direction</span>
+        </div>
           <DirectionButton isForward={isForward} onToggle={setIsForward} />
         <button
-          onClick={() => setIsCollapsed(true)}
+          onClick={onHide}
+          onTouchEnd={onHide}
           className="ml-2 text-xl hover:bg-zinc-800 px-2 rounded-full"
           title="Collapse"
         >
@@ -181,6 +209,8 @@ export function ControlPanel({
       {revoluteJoints.length > 0 && (
         <RevoluteJointsTable
           joints={revoluteJoints}
+          coordinates={coordinateStates}
+          updateCoordinates={updateCoordinates}
           updateJointDegrees={updateJointDegrees}
           updateJointsDegrees={updateJointsDegrees}
           keyboardControlMap={keyboardControlMap}
@@ -194,6 +224,7 @@ export function ControlPanel({
       {!isWebSocketConnected && (
         <ConnectionControlSection
           title="Serial"
+          type=""
           isConnected={isSerialConnected}
           isSyncing={isSyncing}
           isConnecting={serialConnectionStatus === "connecting"}
@@ -208,6 +239,7 @@ export function ControlPanel({
       {!isSerialConnected && (
         <ConnectionControlSection
           title="WebSocket"
+          type=""
           isConnected={isWebSocketConnected}
           isSyncing={isSyncing}
           isConnecting={webSocketConnectionStatus === "connecting"}
@@ -225,5 +257,6 @@ export function ControlPanel({
         onConfirm={handleConfirmWsModal}
       />     
     </div>
+    </Rnd>  
   );
 }

@@ -2,8 +2,11 @@
 import Oeact, { useState, useEffect, useRef } from "react"; // Added useRef
 import {
   JointState,
+  CoordinateState,
   UpdateJointDegrees,
   UpdateJointsDegrees,
+  UpdateCoordinates,
+  updateVirtualCoordinatesByVirtualJointStates,
 } from "../../../hooks/useRobotControl";
 import { radiansToDegrees,degreesToRadians } from "../../../lib/utils";
 import { RobotConfig } from "@/config/robotConfig";
@@ -12,8 +15,10 @@ import { StepBack } from "lucide-react";
 
 type RevoluteJointsTableProps = {
   joints: JointState[];
+  coordinates: CoordinateState[];
   updateJointDegrees: UpdateJointDegrees;
   updateJointsDegrees: UpdateJointsDegrees;
+  updateCoordinates: UpdateCoordinates;
   keyboardControlMap: RobotConfig["keyboardControlMap"];
   CoordinateControls?: RobotConfig["CoordinateControls"]; // Use type from robotConfig
   isReverse: boolean;
@@ -36,12 +41,39 @@ const formatRealDegrees = (degrees?: number | "N/A" | "error") => {
   return degrees === "N/A" ? "/" : `${degrees?.toFixed(1)}°`;
 };
 
+const formatRealCoordinates = (coordinates?: number | "N/A" | "error") => {
+  if (coordinates === "error") {
+    return <span className="text-red-500">Error</span>;
+  }
+  return coordinates === "N/A" ? "/" : `${coordinates?.toFixed(1)}mm`;
+};
 
+const formatRealOrientations = (radians?: number | "N/A" | "error") => {
+  if (radians === "error") {
+    return <span className="text-red-500">Error</span>;
+  }
+  return radians === "N/A"
+    ? "/"
+    : `${(radians !== undefined ? (radians * 180) / Math.PI : 0).toFixed(1)}°`;
+};
+
+
+const formatVirtualCoordinates = (coordinates?: number) =>
+  coordinates !== undefined
+    ? `${coordinates > 0 ? "+" : ""}${coordinates.toFixed(1)}mm`
+    : "/";
+
+const formatVirtualOrientations = (radians?: number | "N/A" | "error") =>
+  typeof radians === "number"
+    ? `${radians > 0 ? "+" : ""}${(radians * 180 / Math.PI).toFixed(1)}°`
+    : "/";
 
 export function RevoluteJointsTable({
   joints,
+  coordinates,
   updateJointDegrees,
   updateJointsDegrees,
+  updateCoordinates,
   keyboardControlMap,
   CoordinateControls,
   isReverse,
@@ -50,18 +82,21 @@ export function RevoluteJointsTable({
   const [pressedKeys, setPressedKeys] = useState<Set<string>>(new Set());
   // Refs to hold the latest values needed inside the interval callback
   const jointsRef = useRef(joints);
+  const coordinatesRef = useRef(coordinates);
   const updateJointsDegreesRef = useRef(updateJointsDegrees);
+  const updateCoordinatessRef = useRef(updateCoordinates);
   const keyboardControlMapRef = useRef(keyboardControlMap);
- // Initial pose
-  
+
   // Update refs whenever the props change
   useEffect(() => {
     jointsRef.current = joints;
-  }, [joints]);
+    coordinatesRef.current = coordinates;
+  }, [joints, coordinates]);
 
   useEffect(() => {
     updateJointsDegreesRef.current = updateJointsDegrees;
-  }, [updateJointsDegrees]);
+    updateCoordinatessRef.current = updateCoordinates;
+  }, [updateJointsDegrees, updateCoordinates]);
 
   useEffect(() => {
     keyboardControlMapRef.current = keyboardControlMap;
@@ -99,16 +134,17 @@ export function RevoluteJointsTable({
     };
   }, []); // Empty dependency array: sets up listeners once
 
-  let pose: number[] = [200, 0, 50, 0, 0];
   // Effect for handling continuous updates when keys are pressed
   useEffect(() => {
     let intervalId: NodeJS.Timeout | null = null;
 
     const updateJointsBasedOnKeys = () => {
       const currentJoints = jointsRef.current;
+      const currentCoordinates = coordinatesRef.current;
       const currentControlMap = keyboardControlMapRef.current || {};
       const currentPressedKeys = pressedKeys;
-      let currentpose = pose;    
+
+      let currentpose = currentCoordinates.map(c => c.virtualCoordinates ?? 0);
 
       const currentCoordinateControls = CoordinateControls || [];
 
@@ -138,44 +174,6 @@ export function RevoluteJointsTable({
         })
         .filter((u) => u !== null) as { servoId: number; value: number }[];
 
-      const getDegree = (id: number): number => {
-        const joint = currentJoints.find((j) => j.servoId === id);
-        return joint?.virtualDegrees ?? 0;
-      };
-
-      if(robotName=="roarm_m2"){
-        const base_joint_rad = degreesToRadians(getDegree(1));
-        const shoulder_joint_rad = degreesToRadians(getDegree(2));
-        const elbow_joint_rad = degreesToRadians(getDegree(3));
-        hand_joint_rad = degreesToRadians(getDegree(4));
-
-        // 更新全局位姿
-        currentpose = roarm_m2.computePosbyJointRad(
-          base_joint_rad,
-          shoulder_joint_rad,
-          elbow_joint_rad,
-          hand_joint_rad
-        );
-      }else if(robotName=="roarm_m3"){
-        const base_joint_rad = degreesToRadians(getDegree(1));
-        const shoulder_joint_rad = degreesToRadians(getDegree(2));
-        const elbow_joint_rad = degreesToRadians(getDegree(3));
-        const wrist_joint_rad = degreesToRadians(getDegree(4));
-        const roll_joint_rad = degreesToRadians(getDegree(5));
-        hand_joint_rad = degreesToRadians(getDegree(6));
-
-        // 更新全局位姿
-        currentpose = roarm_m3.computePosbyJointRad(
-          base_joint_rad,
-          shoulder_joint_rad,
-          elbow_joint_rad,
-          wrist_joint_rad,
-          roll_joint_rad,
-          hand_joint_rad
-        );
-
-      }
-      // ------------------------
       // 坐标控制（XYZ控制）
       // ------------------------
       currentCoordinateControls.forEach((cm) => {
@@ -236,7 +234,7 @@ export function RevoluteJointsTable({
           }
           changepose=false;
         }
-      // coord.virtualCoordinate = (coord.virtualCoordinate ?? 0) + delta;
+
       jointupdates = currentJoints
         .map((joint, idx) => {
           const deg = radiansToDegrees(ikResults[idx]);
@@ -253,6 +251,13 @@ export function RevoluteJointsTable({
 
       if (jointupdates.length > 0) {
         updateJointsDegreesRef.current(jointupdates);
+        updateVirtualCoordinatesByVirtualJointStates(
+        jointsRef,
+        -1,  
+        0,  
+        robotName,
+        updateCoordinatessRef.current
+      );
       }
     };    
     if (pressedKeys.size > 0) {
@@ -288,7 +293,7 @@ export function RevoluteJointsTable({
         <thead>
           {/* ... existing table head ... */}
           <tr>
-            <th className="border-b border-gray-600 pb-1 pr-2">Joint Controls</th>
+            <th className="border-b border-gray-600 pb-1 pr-2">Joint</th>
             <th className="border-b border-gray-600 pb-1 text-center pl-2">
               Virtual Angle
             </th>
@@ -303,7 +308,7 @@ export function RevoluteJointsTable({
         <tbody>
           {joints.map((detail) => {
             // Use `joints` prop for rendering current state
-            const increaseKey = keyboardControlMap[detail.servoId!]?.[0];
+            const increaseKey = keyboardControlMap[detail.servoId!];
             const isDecreaseActive =
               isReverse && increaseKey && pressedKeys.has(increaseKey);
             const isIncreaseActive =
@@ -355,6 +360,13 @@ export function RevoluteJointsTable({
                     onChange={(e) => {
                       const valueInDegrees = parseFloat(e.target.value);
                       updateJointDegrees(detail.servoId!, valueInDegrees);
+                      updateVirtualCoordinatesByVirtualJointStates(
+                        jointsRef,
+                        detail.servoId!,
+                        valueInDegrees,
+                        robotName,
+                        updateCoordinates
+                      );
                     }}
                     className="h-2 bg-gray-700 appearance-none cursor-pointer w-14 custom-range-thumb"
                   />
@@ -388,73 +400,93 @@ export function RevoluteJointsTable({
           <table className="table-auto w-full text-left text-sm">
             <thead>
               <tr>
-                <th className="border-b border-gray-600 pb-2 pr-2 ">Coordinate Controls</th>
-                <th className="border-b border-gray-600 pb-1 text-center px-2"></th>
+                <th className="border-b border-gray-600 pb-2 pr-2">
+                  Coordinate
+                </th>
+                <th className="border-b border-gray-600 pb-1 text-center pl-2">
+                  Virtual Coordinate
+                </th>
+                <th className="border-b border-gray-600 pb-1 text-center pl-2">
+                  Real Coordinate
+                </th>
+                <th className="border-b border-gray-600 pb-1 text-center pl-2">
+                  Control
+                </th>                
               </tr>
             </thead>
             <tbody>
               {CoordinateControls.map((cm, idx) => {
-                const increaseKey = cm.keys[0];
+                const increaseKey = cm.keys;
+                const coord = coordinates.find(c => c.name === cm.name);
                 const isDecreaseActive =
                   isReverse && increaseKey && pressedKeys.has(increaseKey);
                 const isIncreaseActive =
                   !isReverse && increaseKey && pressedKeys.has(increaseKey);
+
                 return (
                   <tr key={idx}>
-                    <td className="font-semibold pr-2 align-top">{cm.name}</td>
-                    <td>
-                      {cm.keys && cm.keys.length > 0 && (
-                        <span className="space-x-1 flex flex-row">
-                          {/* Decrease key */}
-                          <button
-                            onMouseDown={() => handleMouseDown(increaseKey)}
-                            onMouseUp={() => handleMouseUp(increaseKey)}
-                            onMouseLeave={() => handleMouseUp(increaseKey)}
-                            onTouchStart={() => handleMouseDown(increaseKey)}
-                            onTouchEnd={() => handleMouseUp(increaseKey)}
-                            className={`${
-                              isDecreaseActive
-                                ? "bg-blue-600"
-                                : "bg-gray-700 hover:bg-gray-600"
-                            } text-white text-xs font-bold w-5 h-5 text-right pr-1 uppercase select-none`}
-                            style={{
-                              clipPath:
-                                "polygon(0 50%, 30% 0, 100% 0, 100% 100%, 30% 100%)",
-                              minWidth: "1.8em",
-                              minHeight: "1.8em",
-                              fontWeight: 600,
-                              boxShadow: "0 1px 2px 0 rgba(0,0,0,0.04)",
-                            }}
-                            tabIndex={-1}
-                          >
-                            {"-"}
-                          </button>
-                          {/* Increase key */}
-                          <button
-                            onMouseDown={() => handleMouseDown(increaseKey)}
-                            onMouseUp={() => handleMouseUp(increaseKey)}
-                            onMouseLeave={() => handleMouseUp(increaseKey)}
-                            onTouchStart={() => handleMouseDown(increaseKey)}
-                            onTouchEnd={() => handleMouseUp(increaseKey)}
-                            className={`${
-                              isIncreaseActive
-                                ? "bg-blue-600"
-                                : "bg-gray-700 hover:bg-gray-600"
-                            } text-white text-xs font-semibold w-5 h-5 text-left pl-1 uppercase select-none`}
-                            style={{
-                              clipPath:
-                                "polygon(100% 50%, 70% 0, 0 0, 0 100%, 70% 100%)",
-                              minWidth: "1.8em",
-                              minHeight: "1.8em",
-                              fontWeight: 600,
-                              boxShadow: "0 1px 2px 0 rgba(0,0,0,0.04)",
-                            }}
-                            tabIndex={-1}
-                          >
-                            {increaseKey || "+"}
-                          </button>
-                        </span>
-                      )}
+                    <td  className="">{cm.name}</td>
+                    <td className="pr-2 text-center w-16">
+                    {idx <= 2
+                      ? formatVirtualCoordinates(coord?.virtualCoordinates) 
+                      : formatVirtualOrientations(coord?.virtualCoordinates)} 
+                    </td>
+                    <td className="pl-2 text-center w-16">
+                    {idx <= 2
+                      ? formatRealCoordinates(coord?.realCoordinates) 
+                      : formatRealOrientations(coord?.realCoordinates)} 
+                    </td>                    
+                    <td className="py-1 px-4 flex items-center">
+                      <span className="space-x-1 flex flex-row">
+                        {/* Decrease key */}
+                        <button
+                          onMouseDown={() => handleMouseDown(increaseKey)}
+                          onMouseUp={() => handleMouseUp(increaseKey)}
+                          onMouseLeave={() => handleMouseUp(increaseKey)}
+                          onTouchStart={() => handleMouseDown(increaseKey)}
+                          onTouchEnd={() => handleMouseUp(increaseKey)}
+                          className={`${
+                            isDecreaseActive
+                              ? "bg-blue-600"
+                              : "bg-gray-700 hover:bg-gray-600"
+                          } text-white text-xs font-bold w-5 h-5 text-right pr-1 uppercase select-none`}
+                          style={{
+                            clipPath:
+                              "polygon(0 50%, 30% 0, 100% 0, 100% 100%, 30% 100%)",
+                            minWidth: "1.8em",
+                            minHeight: "1.8em",
+                            fontWeight: 600,
+                            boxShadow: "0 1px 2px 0 rgba(0,0,0,0.04)",
+                          }}
+                          tabIndex={-1}
+                        >
+                          {"-"}
+                        </button>
+                        {/* Increase key */}
+                        <button
+                          onMouseDown={() => handleMouseDown(increaseKey)}
+                          onMouseUp={() => handleMouseUp(increaseKey)}
+                          onMouseLeave={() => handleMouseUp(increaseKey)}
+                          onTouchStart={() => handleMouseDown(increaseKey)}
+                          onTouchEnd={() => handleMouseUp(increaseKey)}
+                          className={`${
+                            isIncreaseActive
+                              ? "bg-blue-600"
+                              : "bg-gray-700 hover:bg-gray-600"
+                          } text-white text-xs font-semibold w-5 h-5 text-left pl-1 uppercase select-none`}
+                          style={{
+                            clipPath:
+                              "polygon(100% 50%, 70% 0, 0 0, 0 100%, 70% 100%)",
+                            minWidth: "1.8em",
+                            minHeight: "1.8em",
+                            fontWeight: 600,
+                            boxShadow: "0 1px 2px 0 rgba(0,0,0,0.04)",
+                          }}
+                          tabIndex={-1}
+                        >
+                          {increaseKey || "+"}
+                        </button>
+                      </span>
                     </td>
                   </tr>
                 );
