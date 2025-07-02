@@ -225,7 +225,7 @@ export function LeaderControl({
             onConnect={() => handleConnect("Serial")}
             onDisconnect={() => handleDisconnect("Serial")}
             onUpdateRealAngles={() => {}}
-            onToggleSync={() => setIsSyncing((prev) => !prev)}
+            onToggleSync={() => {}}
           />
         )}
 
@@ -240,7 +240,7 @@ export function LeaderControl({
             onConnect={() => handleConnect("WebSocket")}
             onDisconnect={() => handleDisconnect("WebSocket")}
             onUpdateRealAngles={() => {}}
-            onToggleSync={() => setIsSyncing((prev) => !prev)}
+            onToggleSync={() => {}}
           />
         )}
 
