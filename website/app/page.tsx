@@ -12,7 +12,7 @@ export default function Home() {
       image: "/roarm_m2.jpg",
       playLink: "/play/roarm_m2",
       wikiLink:
-        "https://www.waveshare.com/wiki/RoArm-M2",
+        "https://www.waveshare.com/wiki/RoArm-M2-S",
     },     
     {
       id: 1,
