@@ -243,7 +243,6 @@ export function useRobotControl(
         }
       }
       setJointStates(newStates);  
-      updateRealCoordinatesByRealDegreesLocal();
     } catch (error) {
       console.error("Failed to connect to the robot:", error);
     }
@@ -294,18 +293,6 @@ export function useRobotControl(
           }
         }
         setJointStates(newStates);
-        if (type === "Real") {
-          updateRealCoordinatesByRealDegrees(newStates, robotName, UpdateRealCoordinates);
-        } else if (type === "Virtual") {
-          updateVirtualCoordinatesByVirtualJointStates(
-            { current: newStates },  
-            -1,
-            0,
-            robotName,
-            updateCoordinatessRef.current
-          );
-        }
-        updateRealCoordinatesByRealDegrees(newStates, robotName, UpdateRealCoordinates);
       } 
     catch (error) {
         console.error("Failed to update feedback to the robot:", error);
@@ -435,7 +422,6 @@ export function useRobotControl(
         }
       }
       setJointStates(newStates);
-      updateRealCoordinatesByRealDegreesLocal();
     },
     [jointStates, isSerialConnected, isWebSocketConnected]
   );
@@ -478,17 +464,13 @@ export function useRobotControl(
     []
   );
 
-  const updateRealCoordinatesByRealDegreesLocal = useCallback(() => {
-    updateRealCoordinatesByRealDegrees(jointStates, robotName, UpdateRealCoordinates);
-  }, [jointStates]);
-
   const updateCoordinatessRef = useRef<UpdateCoordinates>(() => Promise.resolve());
 
   useEffect(() => {
     updateCoordinatessRef.current = UpdateCoordinates;
   }, [UpdateCoordinates]);
 
-    const startRecording = useCallback(() => {
+  const startRecording = useCallback(() => {
     setIsRecording(true);
     setRecordData([]);
 
@@ -533,6 +515,37 @@ export function useRobotControl(
     };
   }, []);
 
+  useEffect(() => {
+  const allRevoluteHaveVirtual = jointStates.every(
+    (j) =>
+      j.jointType !== "revolute" ||
+      (typeof j.virtualDegrees === "number" && !isNaN(j.virtualDegrees))
+  );
+
+  if (allRevoluteHaveVirtual) {
+    updateVirtualCoordinatesByVirtualJointStates(
+      { current: jointStates },
+      -1,
+      0,
+      robotName,
+      UpdateCoordinates
+    );
+  }
+}, [jointStates, robotName, UpdateCoordinates]);
+
+  useEffect(() => {
+  const allRevoluteHaveValue = jointStates.every(
+    (j) =>
+      j.jointType !== "revolute" ||
+      (typeof j.realDegrees === "number" && !isNaN(j.realDegrees))
+  );
+
+  if (allRevoluteHaveValue) {
+    updateRealCoordinatesByRealDegrees(jointStates, robotName, UpdateRealCoordinates);
+  }
+}, [jointStates, robotName, UpdateRealCoordinates]);
+
+
   return {
     isSerialConnected,
     isWebSocketConnected,
@@ -546,7 +559,6 @@ export function useRobotControl(
     updateJointsDegrees,
     UpdateCoordinates,
     UpdateRealCoordinates,
-    updateRealCoordinatesByRealDegreesLocal,
     setJointDetails,
     setCoordinateDetails,
     isRecording,

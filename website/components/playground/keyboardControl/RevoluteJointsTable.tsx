@@ -6,9 +6,8 @@ import {
   UpdateJointDegrees,
   UpdateJointsDegrees,
   UpdateCoordinates,
-  updateVirtualCoordinatesByVirtualJointStates,
 } from "../../../hooks/useRobotControl";
-import { radiansToDegrees,degreesToRadians } from "../../../lib/utils";
+import { radiansToDegrees } from "../../../lib/utils";
 import { RobotConfig } from "@/config/robotConfig";
 import {  roarm_m2,roarm_m3 } from "@/config/roarmSolver"; 
 import { StepBack } from "lucide-react";
@@ -251,13 +250,6 @@ export function RevoluteJointsTable({
 
       if (jointupdates.length > 0) {
         updateJointsDegreesRef.current(jointupdates);
-        updateVirtualCoordinatesByVirtualJointStates(
-        jointsRef,
-        -1,  
-        0,  
-        robotName,
-        updateCoordinatessRef.current
-      );
       }
     };    
     if (pressedKeys.size > 0) {
@@ -360,13 +352,6 @@ export function RevoluteJointsTable({
                     onChange={(e) => {
                       const valueInDegrees = parseFloat(e.target.value);
                       updateJointDegrees(detail.servoId!, valueInDegrees);
-                      updateVirtualCoordinatesByVirtualJointStates(
-                        jointsRef,
-                        detail.servoId!,
-                        valueInDegrees,
-                        robotName,
-                        updateCoordinates
-                      );
                     }}
                     className="h-2 bg-gray-700 appearance-none cursor-pointer w-14 custom-range-thumb"
                   />
