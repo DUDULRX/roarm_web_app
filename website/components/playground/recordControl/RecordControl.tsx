@@ -100,7 +100,6 @@ const RecordControl = ({
         await leaderControl.disconnectRobot();
       } catch (error) {
         console.error("Failed to disconnect leader robot:", error);
-        // 即使断开失败也继续 replay
       }
     }
 
@@ -131,9 +130,6 @@ const RecordControl = ({
       // Apply updates
       if (revoluteUpdates.length > 0) {
         await updateJointsDegrees(revoluteUpdates);
-      }
-      if (continuousUpdates.length > 0) {
-        await updateJointsSpeed(continuousUpdates);
       }
 
       setReplayProgress(frameIndex + 1);

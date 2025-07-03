@@ -196,7 +196,7 @@ export function RevoluteJointsTable({
       let ikResults: number[] = [];
       let changepose = false;
       // ------------------------
-      // 单独关节控制
+      // joint control
       // ------------------------
       jointupdates = currentJoints
         .map((joint) => {
@@ -229,7 +229,7 @@ export function RevoluteJointsTable({
         })
         .filter((u) => u !== null) as { servoId: number; value: number }[];
 
-      // 坐标控制（XYZ控制）
+      //coordinate control
       // ------------------------
       currentCoordinateControls.forEach((cm) => {
         if (!cm || !cm.name) return;
@@ -280,7 +280,7 @@ export function RevoluteJointsTable({
         }
 
         // ------------------------
-        // 坐标逆解控制关节
+        // use ikresult to control joints
         // ------------------------
         if (changepose) {
           if (robotName === "roarm_m2") {
