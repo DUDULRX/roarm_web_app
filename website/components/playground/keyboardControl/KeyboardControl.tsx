@@ -35,6 +35,7 @@ type ControlPanelProps = {
   updateAngles: (type: string) => void;
   disconnectRobot: () => void;
   keyboardControlMap: RobotConfig["keyboardControlMap"]; // New prop for keyboard control
+  gamepadControlMap: RobotConfig["gamepadControlMap"]; // New prop for gamepad control
   CoordinateControls?: RobotConfig["CoordinateControls"]; // Use type from robotConfig
   onHide?: () => void; 
   show?: boolean; 
@@ -56,6 +57,7 @@ export function ControlPanel({
   updateAngles,
   disconnectRobot,
   keyboardControlMap, // Destructure new prop
+  gamepadControlMap, // Destructure new prop
   CoordinateControls, // Destructure new prop
 }: ControlPanelProps) {
   const [isForward, setIsForward] = useState(true);
@@ -190,10 +192,10 @@ export function ControlPanel({
         ref={ref}
         className={"max-h-[90vh] overflow-y-auto text-sm " + panelStyle}
       >
-        <h3 className=" mt-0 mb-4 border-b border-zinc-600 pb-1 font-bold text-base flex justify-between items-center">
-        <span className=" drag-handle" >Keyboard Controls</span>
+        <h3 className=" drag-handle mt-0 mb-4 border-b border-zinc-600 pb-1 font-bold text-base flex justify-between items-center" style={{ cursor: 'move' }}>
+        <span className=" drag-handle" style={{ cursor: 'move' }}>Keyboard Controls</span>
         <div>
-          <span className=" drag-handle" >Direction</span>
+          <span className=" drag-handle" style={{ cursor: 'move' }}>Direction</span>
         </div>
           <DirectionButton isForward={isForward} onToggle={setIsForward} />
         <button
@@ -214,6 +216,7 @@ export function ControlPanel({
           updateJointDegrees={updateJointDegrees}
           updateJointsDegrees={updateJointsDegrees}
           keyboardControlMap={keyboardControlMap}
+          gamepadControlMap={gamepadControlMap}
           CoordinateControls={CoordinateControls}
           isReverse={!isForward}
           robotName={robotName}

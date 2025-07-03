@@ -315,7 +315,7 @@ export function useRobotControl(
         console.log("Disconnecting robot via WebSocket...");
         try {
           wsClient.torque_set(0);
-          wsClient.disconnect(); // 如果这是异步的建议加 await
+          await wsClient.disconnect(); // 如果这是异步的建议加 await
           setIsWebSocketConnected(false);
         } catch (err) {
           console.error("WebSocket disconnect or torque set failed:", err);

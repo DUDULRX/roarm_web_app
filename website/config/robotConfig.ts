@@ -10,6 +10,27 @@ type CoordinateControls = {
   keys: string; // keys that trigger this movement
 };
 
+export enum Axis {
+  LEFT_STICK_X = 0,
+  LEFT_STICK_Y = 1,
+  RIGHT_STICK_X = 2,
+  RIGHT_STICK_Y = 3,
+}
+
+export enum Button {
+  RIGHT_BUMPER_1 = 5,
+  RIGHT_BUMPER_2 = 7,
+  RIGHT_STICK_CLICK = 10,
+  D_PAD_X_L = 14,
+  D_PAD_X_R = 15,  
+}
+
+type ControlMap = {
+  axis: Partial<Record<Axis, string>>;  
+  button: Partial<Record<Button, string>>; 
+  reversedKeys: string[];
+};
+
 // Define combined robot configuration type
 export type RobotConfig = {
   urdfUrl: string;
@@ -17,6 +38,9 @@ export type RobotConfig = {
   orbitTarget: [number, number, number];
   keyboardControlMap?: {
     [key: string]: string;
+  };
+  gamepadControlMap?:{
+    [mode: string]: ControlMap
   };
   jointNameIdMap?: {
     [key: string]: number;
@@ -43,6 +67,40 @@ export const robotConfigMap: { [key: string]: RobotConfig } = {
       link1_to_link2: 2,
       link2_to_link3: 3,
       link3_to_gripper_link: 4,
+    },    
+    gamepadControlMap: {
+      swith_control: {       
+        axis: {
+        },
+        button: {
+          [Button.RIGHT_BUMPER_1]: "r1",
+        },
+        reversedKeys: [],
+      },
+      joints: {
+        axis: {
+          [Axis.LEFT_STICK_X]: "1",
+          [Axis.LEFT_STICK_Y]: "2",
+        },
+        button: {
+          [Button.RIGHT_STICK_CLICK]: "3", //3 => 3+, [Button.RIGHT_BUMPER_2]: "r2", //r2 + 3 => 3-
+          [Button.D_PAD_X_L]: "g-",   
+          [Button.D_PAD_X_R]: "g+",
+        },
+        reversedKeys: [],
+      },
+      coordinates: {
+        axis: {
+          [Axis.LEFT_STICK_X]: "y",
+          [Axis.LEFT_STICK_Y]: "x",
+        },
+        button: {
+          [Button.RIGHT_STICK_CLICK]: "z", //z => z+, [Button.RIGHT_BUMPER_2]: "r2", //r2 + z => z-
+          [Button.D_PAD_X_L]: "g-",   
+          [Button.D_PAD_X_R]: "g+",
+        },
+        reversedKeys: [],
+      },
     },
     CoordinateControls: [
       {
@@ -79,6 +137,44 @@ export const robotConfigMap: { [key: string]: RobotConfig } = {
       4:  "4",
       5:  "5",
       6:  "g",
+    },
+    gamepadControlMap: {
+      swith_control: {       
+        axis: {
+        },
+        button: {
+          [Button.RIGHT_BUMPER_1]: "r1",
+        },
+        reversedKeys: [],
+      },
+      joints: {
+        axis: {
+          [Axis.LEFT_STICK_X]: "1",
+          [Axis.LEFT_STICK_Y]: "2",
+          [Axis.RIGHT_STICK_X]: "5",
+          [Axis.RIGHT_STICK_Y]: "4",
+        },
+        button: {
+          [Button.RIGHT_STICK_CLICK]: "3", //3 => 3+, [Button.RIGHT_BUMPER_2]: "r2", //r2 + 3 => 3-
+          [Button.D_PAD_X_L]: "g-",   
+          [Button.D_PAD_X_R]: "g+",
+        },
+        reversedKeys: ["5"],
+      },
+      coordinates: {
+        axis: {
+          [Axis.LEFT_STICK_X]: "y",
+          [Axis.LEFT_STICK_Y]: "x",
+          [Axis.RIGHT_STICK_X]: "r",
+          [Axis.RIGHT_STICK_Y]: "p",
+        },
+        button: {
+          [Button.RIGHT_STICK_CLICK]: "z", //z => z+, [Button.RIGHT_BUMPER_2]: "r2", //r2 + z => z-
+          [Button.D_PAD_X_L]: "g-",   
+          [Button.D_PAD_X_R]: "g+",
+        },
+        reversedKeys: ["r"],
+      },
     },
     jointNameIdMap: {
       base_link_to_link1: 1,

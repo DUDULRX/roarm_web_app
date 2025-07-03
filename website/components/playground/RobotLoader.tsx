@@ -86,6 +86,7 @@ export default function RobotLoader({ robotName }: RobotLoaderProps) {
     orbitTarget,
     camera,
     keyboardControlMap,
+    gamepadControlMap,
     CoordinateControls,
     systemPrompt, // <-- Add this line
   } = config; // Extract compoundMovements and systemPrompt
@@ -210,6 +211,7 @@ export default function RobotLoader({ robotName }: RobotLoaderProps) {
         updateAngles={ updateAngles}
         disconnectRobot={disconnectRobot}
         keyboardControlMap={keyboardControlMap}
+        gamepadControlMap={gamepadControlMap}
         CoordinateControls={CoordinateControls}
       />
       

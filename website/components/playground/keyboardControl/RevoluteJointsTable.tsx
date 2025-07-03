@@ -11,6 +11,7 @@ import { radiansToDegrees } from "../../../lib/utils";
 import { RobotConfig } from "@/config/robotConfig";
 import {  roarm_m2,roarm_m3 } from "@/config/roarmSolver"; 
 import { StepBack } from "lucide-react";
+import { Axis, Button } from "@/config/robotConfig";
 
 type RevoluteJointsTableProps = {
   joints: JointState[];
@@ -19,6 +20,7 @@ type RevoluteJointsTableProps = {
   updateJointsDegrees: UpdateJointsDegrees;
   updateCoordinates: UpdateCoordinates;
   keyboardControlMap: RobotConfig["keyboardControlMap"];
+  gamepadControlMap: RobotConfig["gamepadControlMap"]; // New prop for gamepad control
   CoordinateControls?: RobotConfig["CoordinateControls"]; // Use type from robotConfig
   isReverse: boolean;
   robotName: string;
@@ -28,44 +30,22 @@ type RevoluteJointsTableProps = {
 const KEY_UPDATE_INTERVAL_MS = 3;
 const KEY_UPDATE_STEP_DEGREES = 0.15;
 
-const formatVirtualDegrees = (degrees?: number) =>
-  degrees !== undefined
-    ? `${degrees > 0 ? "+" : ""}${degrees.toFixed(1)}°`
-    : "/";
-
-const formatRealDegrees = (degrees?: number | "N/A" | "error") => {
-  if (degrees === "error") {
-    return <span className="text-red-500">Error</span>;
+const formatValue = (
+  value?: number | "N/A" | "error",
+  unit = "",
+  isAngle = false,
+  isVirtual = false
+) => {
+  if (value === "error") return <span className="text-red-500">Error</span>;
+  if (value === "N/A") return "/";
+  if (typeof value === "number") {
+    let displayValue = value;
+    if (isAngle) displayValue = (value * 180) / Math.PI;
+    let prefix = isVirtual && value > 0 ? "+" : "";
+    return `${prefix}${displayValue.toFixed(1)}${unit}`;
   }
-  return degrees === "N/A" ? "/" : `${degrees?.toFixed(1)}°`;
+  return "/";
 };
-
-const formatRealCoordinates = (coordinates?: number | "N/A" | "error") => {
-  if (coordinates === "error") {
-    return <span className="text-red-500">Error</span>;
-  }
-  return coordinates === "N/A" ? "/" : `${coordinates?.toFixed(1)}mm`;
-};
-
-const formatRealOrientations = (radians?: number | "N/A" | "error") => {
-  if (radians === "error") {
-    return <span className="text-red-500">Error</span>;
-  }
-  return radians === "N/A"
-    ? "/"
-    : `${(radians !== undefined ? (radians * 180) / Math.PI : 0).toFixed(1)}°`;
-};
-
-
-const formatVirtualCoordinates = (coordinates?: number) =>
-  coordinates !== undefined
-    ? `${coordinates > 0 ? "+" : ""}${coordinates.toFixed(1)}mm`
-    : "/";
-
-const formatVirtualOrientations = (radians?: number | "N/A" | "error") =>
-  typeof radians === "number"
-    ? `${radians > 0 ? "+" : ""}${(radians * 180 / Math.PI).toFixed(1)}°`
-    : "/";
 
 export function RevoluteJointsTable({
   joints,
@@ -74,18 +54,22 @@ export function RevoluteJointsTable({
   updateJointsDegrees,
   updateCoordinates,
   keyboardControlMap,
+  gamepadControlMap,
   CoordinateControls,
   isReverse,
   robotName,
 }: RevoluteJointsTableProps) {
-  const [pressedKeys, setPressedKeys] = useState<Set<string>>(new Set());
+  const [pressedKeysKeyboard, setPressedKeysKeyboard] = useState<Set<string>>(new Set());
+  const [pressedKeysGamepad, setPressedKeysGamepad] = useState<Set<string>>(new Set());
+  const [activeInputDevice, setActiveInputDevice] = useState<"keyboard" | "gamepad">("keyboard");
+
   // Refs to hold the latest values needed inside the interval callback
   const jointsRef = useRef(joints);
   const coordinatesRef = useRef(coordinates);
   const updateJointsDegreesRef = useRef(updateJointsDegrees);
-  const updateCoordinatessRef = useRef(updateCoordinates);
+  const updateCoordinatesRef = useRef(updateCoordinates);
   const keyboardControlMapRef = useRef(keyboardControlMap);
-
+  
   // Update refs whenever the props change
   useEffect(() => {
     jointsRef.current = joints;
@@ -94,44 +78,103 @@ export function RevoluteJointsTable({
 
   useEffect(() => {
     updateJointsDegreesRef.current = updateJointsDegrees;
-    updateCoordinatessRef.current = updateCoordinates;
+    updateCoordinatesRef.current = updateCoordinates;
   }, [updateJointsDegrees, updateCoordinates]);
 
   useEffect(() => {
     keyboardControlMapRef.current = keyboardControlMap;
   }, [keyboardControlMap]);
 
-  // Effect for keyboard listeners
   useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      // Check if the pressed key is actually used for control to potentially prevent default
-      // Note: Using the ref here ensures we check against the *latest* map
-      const isControlKey = Object.values(keyboardControlMapRef.current || {})
-        .flat()
-        .includes(event.key);
-      if (isControlKey) {
-        // event.preventDefault(); // Optional: uncomment if keys like arrows scroll the page
-      }
-      setPressedKeys((prevKeys) => new Set(prevKeys).add(event.key));
-    };
-
-    const handleKeyUp = (event: KeyboardEvent) => {
-      setPressedKeys((prevKeys) => {
-        const newKeys = new Set(prevKeys);
-        newKeys.delete(event.key);
-        return newKeys;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      setPressedKeysKeyboard(prev => {
+        if (!prev.has(e.key)) {
+          setActiveInputDevice("keyboard"); 
+          return new Set(prev).add(e.key);
+        }
+        return prev;
       });
     };
-
+    const handleKeyUp = (e: KeyboardEvent) => {
+      setPressedKeysKeyboard(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(e.key);
+        return newSet;
+      });
+    };
     window.addEventListener("keydown", handleKeyDown);
     window.addEventListener("keyup", handleKeyUp);
-
-    // Cleanup function to remove event listeners
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
     };
-  }, []); // Empty dependency array: sets up listeners once
+  }, []);
+
+  // Effect for gamepad listeners
+  useEffect(() => {
+    let afId: number;
+    const AXIS_THRESHOLD = 0.5;
+
+    const pollGamepad = () => {
+      const gp = navigator.getGamepads?.()[0];
+      if (gp) {
+        const newKeys = new Set<string>();
+
+        const switchButtons = Object.keys(gamepadControlMap?.swith_control?.button || {});
+        const switchButtonIndex = switchButtons.length > 0 ? Number(switchButtons[0]) : -1;
+        const switchControlPressed = switchButtonIndex >= 0 && gp.buttons[switchButtonIndex]?.pressed;
+
+        const mode = switchControlPressed ? "coordinates" : "joints";
+        const map = gamepadControlMap?.[mode] || { axis: {}, button: {}, reversedKeys: [] };
+        const r2 = gp.buttons[Button.RIGHT_BUMPER_2]?.pressed;
+        const l3 = gp.buttons[Button.RIGHT_STICK_CLICK]?.pressed;
+
+        for (const axisIndexStr in map.axis) {
+          const axisIndex = Number(axisIndexStr) as Axis; 
+          const keyName = map.axis[axisIndex];
+          const axisValue = gp.axes[axisIndex];
+
+          if (!keyName) continue;
+
+          const isReversed = map.reversedKeys?.includes(keyName);  
+          const pos = isReversed ? "-" : "+";
+          const neg = isReversed ? "+" : "-";
+
+          if (axisValue < -AXIS_THRESHOLD) {
+            newKeys.add(keyName + pos);
+          } else if (axisValue > AXIS_THRESHOLD) {
+            newKeys.add(keyName + neg);
+          }
+        }
+
+        for (const buttonIndexStr in map.button) {
+          const buttonIndex = Number(buttonIndexStr) as Button;
+          const keyName = map.button[buttonIndex];
+          const isPressed = gp.buttons[buttonIndex]?.pressed;
+
+          if (!keyName) continue;
+
+          if (buttonIndex === Button.RIGHT_STICK_CLICK) {
+            if (l3 && r2) newKeys.add(keyName + "-");
+            else if (l3) newKeys.add(keyName + "+");
+          } else if (isPressed) {
+            newKeys.add(keyName);
+          }
+        }
+        if (newKeys.size > 0) {
+          setActiveInputDevice("gamepad"); 
+        }
+        setPressedKeysGamepad(newKeys);
+      }
+
+      afId = requestAnimationFrame(pollGamepad);
+    };
+
+    afId = requestAnimationFrame(pollGamepad);
+    return () => cancelAnimationFrame(afId);
+  }, [gamepadControlMap]);
+
+  const activePressedKeys = activeInputDevice === "gamepad" ? pressedKeysGamepad : pressedKeysKeyboard;
 
   // Effect for handling continuous updates when keys are pressed
   useEffect(() => {
@@ -141,7 +184,8 @@ export function RevoluteJointsTable({
       const currentJoints = jointsRef.current;
       const currentCoordinates = coordinatesRef.current;
       const currentControlMap = keyboardControlMapRef.current || {};
-      const currentPressedKeys = pressedKeys;
+      // const currentPressedKeys = pressedKeys;
+      const currentPressedKeys = activePressedKeys;
 
       let currentpose = currentCoordinates.map(c => c.virtualCoordinates ?? 0);
 
@@ -157,10 +201,21 @@ export function RevoluteJointsTable({
       jointupdates = currentJoints
         .map((joint) => {
           const currentDegrees = joint.virtualDegrees || 0;
-          const increaseKey = currentControlMap[joint.servoId!]?.[0];
+          const baseKey = currentControlMap[joint.servoId!]?.[0];
 
-          if (increaseKey && currentPressedKeys.has(increaseKey)) {
-            let newValue = currentDegrees + (isReverse ? -KEY_UPDATE_STEP_DEGREES : KEY_UPDATE_STEP_DEGREES);
+          let direction = 0;
+
+          if (currentPressedKeys.has(`${baseKey}-`)) {
+            direction = -1; 
+          } else if (currentPressedKeys.has(`${baseKey}+`)) {
+            direction = 1; 
+          } else if (currentPressedKeys.has(`${baseKey}`)) {
+            direction = isReverse ? -1 : 1; 
+          }
+
+          if (direction !== 0) {
+            let newValue = currentDegrees + direction * KEY_UPDATE_STEP_DEGREES;
+
             const lowerLimit = radiansToDegrees(joint.limit?.lower ?? -Infinity);
             const upperLimit = radiansToDegrees(joint.limit?.upper ?? Infinity);
             newValue = Math.max(lowerLimit, Math.min(upperLimit, newValue));
@@ -169,6 +224,7 @@ export function RevoluteJointsTable({
               return { servoId: joint.servoId!, value: newValue };
             }
           }
+
           return null;
         })
         .filter((u) => u !== null) as { servoId: number; value: number }[];
@@ -177,51 +233,64 @@ export function RevoluteJointsTable({
       // ------------------------
       currentCoordinateControls.forEach((cm) => {
         if (!cm || !cm.name) return;
-        else{        
-          const keyPressed = currentPressedKeys.has(cm.keys[0]);
-          if (!keyPressed) return;
 
-          const position_delta = isReverse ? -0.2 : 0.2;
-          const orientation_delta = isReverse ? -0.001 : 0.001;
+        const key = cm.keys[0];
+        if (!key) return;
 
-          switch (cm.keys[0]) {
-            case "x": // X轴控制
-              currentpose[0] += position_delta;
-              changepose = true;
-              break;
-            case "y": // Y轴控制
-              currentpose[1] += position_delta;
-              changepose = true;
-              break;
-            case "z": // Z轴控制
-              currentpose[2] += position_delta;
-              changepose = true;
-              break;
-            case "r": // roll控制
-              currentpose[3] += orientation_delta;
-              changepose = true;
-              break;
-            case "p": // pitch控制
-              currentpose[4] += orientation_delta;
-              changepose = true;
-              break;
-            default:
-              break;
-          }
+        const keyPressed = Array.from(currentPressedKeys).some(k => k.startsWith(key));
+        if (!keyPressed) return;
+        let direction = 0;
+
+        if (currentPressedKeys.has(`${key}+`)) {
+          direction = 1;
+        } else if (currentPressedKeys.has(`${key}-`)) {
+          direction = -1;
+        } else {
+          direction = isReverse ? -1 : 1;
         }
+
+        const position_delta = 0.2 * direction;
+        const orientation_delta = 0.001 * direction;
+
+        const controlName = key.replace(/[+-]$/, ""); 
+
+        switch (controlName) {
+          case "x":
+            currentpose[0] += position_delta;
+            changepose = true;
+            break;
+          case "y":
+            currentpose[1] += position_delta;
+            changepose = true;
+            break;
+          case "z":
+            currentpose[2] += position_delta;
+            changepose = true;
+            break;
+          case "r":
+            currentpose[3] += orientation_delta;
+            changepose = true;
+            break;
+          case "p":
+            currentpose[4] += orientation_delta;
+            changepose = true;
+            break;
+          default:
+            break;
+        }
+
         // ------------------------
         // 坐标逆解控制关节
         // ------------------------
-        if(changepose){
-          if(robotName=="roarm_m2"){  
+        if (changepose) {
+          if (robotName === "roarm_m2") {
             ikResults = roarm_m2.computeJointRadbyPos(
               currentpose[0],
               currentpose[1],
               currentpose[2],
               hand_joint_rad
-            );          
-          changepose=false;
-          }else if(robotName=="roarm_m3"){
+            );
+          } else if (robotName === "roarm_m3") {
             ikResults = roarm_m3.computeJointRadbyPos(
               currentpose[0],
               currentpose[1],
@@ -229,53 +298,48 @@ export function RevoluteJointsTable({
               currentpose[3],
               currentpose[4],
               hand_joint_rad
-            );       
+            );
           }
-          changepose=false;
+          changepose = false;
         }
 
-      jointupdates = currentJoints
-        .map((joint, idx) => {
-          const deg = radiansToDegrees(ikResults[idx]);
-          const lowerLimit = radiansToDegrees(joint.limit?.lower ?? -Infinity);
-          const upperLimit = radiansToDegrees(joint.limit?.upper ?? Infinity);
-          const value = Math.max(lowerLimit, Math.min(upperLimit, deg));
-          if (Math.abs(value - (joint.virtualDegrees ?? 0)) > 1e-3) {
-            return { servoId: joint.servoId!, value };
-          }
-          return null;
-        })
-        .filter((u) => u !== null) as { servoId: number; value: number }[];                
+        jointupdates = currentJoints
+          .map((joint, idx) => {
+            const deg = radiansToDegrees(ikResults[idx]);
+            const lowerLimit = radiansToDegrees(joint.limit?.lower ?? -Infinity);
+            const upperLimit = radiansToDegrees(joint.limit?.upper ?? Infinity);
+            const value = Math.max(lowerLimit, Math.min(upperLimit, deg));
+            if (Math.abs(value - (joint.virtualDegrees ?? 0)) > 1e-3) {
+              return { servoId: joint.servoId!, value };
+            }
+            return null;
+          })
+          .filter((u) => u !== null) as { servoId: number; value: number }[];
       });
 
       if (jointupdates.length > 0) {
         updateJointsDegreesRef.current(jointupdates);
       }
     };    
-    if (pressedKeys.size > 0) {
+    if (activePressedKeys.size > 0) {
       intervalId = setInterval(updateJointsBasedOnKeys, KEY_UPDATE_INTERVAL_MS);
     }
 
     return () => {
       if (intervalId) clearInterval(intervalId);
     };
-  }, [pressedKeys]);
+  }, [activePressedKeys]);
 
   // Mouse handlers update the `pressedKeys` state, which triggers the interval effect
-  const handleMouseDown = (key: string | undefined) => {
-    if (key) {
-      setPressedKeys((prevKeys) => new Set(prevKeys).add(key));
-    }
-  };
-
-  const handleMouseUp = (key: string | undefined) => {
-    if (key) {
-      setPressedKeys((prevKeys) => {
-        const newKeys = new Set(prevKeys);
-        newKeys.delete(key);
-        return newKeys;
-      });
-    }
+  const handleKeyPress = (key: string | undefined, isDown: boolean) => {
+    if (!key) return;
+    setPressedKeysKeyboard(prevKeys => {
+      const newKeys = new Set(prevKeys);
+      if (isDown) newKeys.add(key);
+      else newKeys.delete(key);
+      setActiveInputDevice("keyboard");
+      return newKeys;
+    });
   };
 
   // Component rendering uses the `joints` prop for display
@@ -300,11 +364,16 @@ export function RevoluteJointsTable({
         <tbody>
           {joints.map((detail) => {
             // Use `joints` prop for rendering current state
-            const increaseKey = keyboardControlMap[detail.servoId!];
+            const increaseKey = keyboardControlMap[detail.servoId!]; // e.g. "1"
+
             const isDecreaseActive =
-              isReverse && increaseKey && pressedKeys.has(increaseKey);
+              activePressedKeys.has(`${increaseKey}-`) ||
+              (!activePressedKeys.has(`${increaseKey}+`) && activePressedKeys.has(increaseKey) && isReverse);
+
             const isIncreaseActive =
-              !isReverse && increaseKey && pressedKeys.has(increaseKey);
+              activePressedKeys.has(`${increaseKey}+`) ||
+              (!activePressedKeys.has(`${increaseKey}-`) && activePressedKeys.has(increaseKey) && !isReverse);
+
             return (
               <tr key={detail.servoId}>
                 <td className="">
@@ -313,18 +382,18 @@ export function RevoluteJointsTable({
                 </td>
 
                 <td className="pr-2 text-center w-16">
-                  {formatVirtualDegrees(detail.virtualDegrees)}
+                  {formatValue(detail.virtualDegrees, "°", false, true)}
                 </td>
                 <td className="pl-2 text-center w-16">
-                  {formatRealDegrees(detail.realDegrees)}
+                  {formatValue(detail.realDegrees, "°", false, false)}
                 </td>
                 <td className="py-1 px-4 flex items-center">
                   <button
-                    onMouseDown={() => handleMouseDown(increaseKey)}
-                    onMouseUp={() => handleMouseUp(increaseKey)}
-                    onMouseLeave={() => handleMouseUp(increaseKey)} // Optional: stop if mouse leaves button while pressed
-                    onTouchStart={() => handleMouseDown(increaseKey)} // Optional: basic touch support
-                    onTouchEnd={() => handleMouseUp(increaseKey)} // Optional: basic touch support
+                    onMouseDown={() => handleKeyPress(`${increaseKey}-`, true)}
+                    onMouseUp={() => handleKeyPress(`${increaseKey}-`, false)}
+                    onMouseLeave={() => handleKeyPress(`${increaseKey}-`, false)} // Optional: stop if mouse leaves button while pressed
+                    onTouchStart={() => handleKeyPress(increaseKey, true)} // Optional: basic touch support
+                    onTouchEnd={() => handleKeyPress(increaseKey, false)} // Optional: basic touch support
                     className={`${
                       isDecreaseActive
                         ? "bg-blue-600"
@@ -356,11 +425,11 @@ export function RevoluteJointsTable({
                     className="h-2 bg-gray-700 appearance-none cursor-pointer w-14 custom-range-thumb"
                   />
                   <button
-                    onMouseDown={() => handleMouseDown(increaseKey)}
-                    onMouseUp={() => handleMouseUp(increaseKey)}
-                    onMouseLeave={() => handleMouseUp(increaseKey)} // Optional
-                    onTouchStart={() => handleMouseDown(increaseKey)} // Optional
-                    onTouchEnd={() => handleMouseUp(increaseKey)} // Optional
+                    onMouseDown={() => handleKeyPress(`${increaseKey}+`, true)}
+                    onMouseUp={() => handleKeyPress(`${increaseKey}+`, false)}
+                    onMouseLeave={() => handleKeyPress(`${increaseKey}+`, false)} // Optional
+                    onTouchStart={() => handleKeyPress(increaseKey, true)} // Optional
+                    onTouchEnd={() => handleKeyPress(increaseKey, false)} // Optional
                     className={`${
                       isIncreaseActive
                         ? "bg-blue-600"
@@ -401,35 +470,40 @@ export function RevoluteJointsTable({
             </thead>
             <tbody>
               {CoordinateControls.map((cm, idx) => {
-                const increaseKey = cm.keys;
                 const coord = coordinates.find(c => c.name === cm.name);
+ 
+                const increaseKey = cm.keys; // e.g. "1"
+
                 const isDecreaseActive =
-                  isReverse && increaseKey && pressedKeys.has(increaseKey);
+                  (activePressedKeys.has(`${increaseKey}-`)) ||
+                  (!activePressedKeys.has(`${increaseKey}+`) && activePressedKeys.has(increaseKey) && isReverse);
+
                 const isIncreaseActive =
-                  !isReverse && increaseKey && pressedKeys.has(increaseKey);
+                  (activePressedKeys.has(`${increaseKey}+`)) ||
+                  (!activePressedKeys.has(`${increaseKey}-`) && activePressedKeys.has(increaseKey) && !isReverse);
 
                 return (
                   <tr key={idx}>
                     <td  className="">{cm.name}</td>
                     <td className="pr-2 text-center w-16">
                     {idx <= 2
-                      ? formatVirtualCoordinates(coord?.virtualCoordinates) 
-                      : formatVirtualOrientations(coord?.virtualCoordinates)} 
+                      ? formatValue(coord?.virtualCoordinates, "mm", false, true) 
+                      : formatValue(coord?.virtualCoordinates, "°", true, false)} 
                     </td>
                     <td className="pl-2 text-center w-16">
                     {idx <= 2
-                      ? formatRealCoordinates(coord?.realCoordinates) 
-                      : formatRealOrientations(coord?.realCoordinates)} 
+                      ? formatValue(coord?.realCoordinates, "mm", false, true) 
+                      : formatValue(coord?.realCoordinates, "°", true, false)} 
                     </td>                    
-                    <td className="py-1 px-4 flex items-center">
-                      <span className="space-x-1 flex flex-row">
+                    <td className="py-1 px-2 text-center">
+                      <div className="flex justify-center space-x-1">
                         {/* Decrease key */}
                         <button
-                          onMouseDown={() => handleMouseDown(increaseKey)}
-                          onMouseUp={() => handleMouseUp(increaseKey)}
-                          onMouseLeave={() => handleMouseUp(increaseKey)}
-                          onTouchStart={() => handleMouseDown(increaseKey)}
-                          onTouchEnd={() => handleMouseUp(increaseKey)}
+                          onMouseDown={() => handleKeyPress(`${increaseKey}-`, true)}
+                          onMouseUp={() => handleKeyPress(`${increaseKey}-`, false)}
+                          onMouseLeave={() => handleKeyPress(`${increaseKey}-`, false)} // Optional
+                          onTouchStart={() => handleKeyPress(increaseKey, true)} // Optional
+                          onTouchEnd={() => handleKeyPress(increaseKey, false)} // Optional
                           className={`${
                             isDecreaseActive
                               ? "bg-blue-600"
@@ -449,11 +523,11 @@ export function RevoluteJointsTable({
                         </button>
                         {/* Increase key */}
                         <button
-                          onMouseDown={() => handleMouseDown(increaseKey)}
-                          onMouseUp={() => handleMouseUp(increaseKey)}
-                          onMouseLeave={() => handleMouseUp(increaseKey)}
-                          onTouchStart={() => handleMouseDown(increaseKey)}
-                          onTouchEnd={() => handleMouseUp(increaseKey)}
+                          onMouseDown={() => handleKeyPress(`${increaseKey}+`, true)}
+                          onMouseUp={() => handleKeyPress(`${increaseKey}+`, false)}
+                          onMouseLeave={() => handleKeyPress(`${increaseKey}+`, false)} // Optional
+                          onTouchStart={() => handleKeyPress(increaseKey, true)} // Optional
+                          onTouchEnd={() => handleKeyPress(increaseKey, false)} // Optional
                           className={`${
                             isIncreaseActive
                               ? "bg-blue-600"
@@ -471,7 +545,7 @@ export function RevoluteJointsTable({
                         >
                           {increaseKey || "+"}
                         </button>
-                      </span>
+                      </div>
                     </td>
                   </tr>
                 );
