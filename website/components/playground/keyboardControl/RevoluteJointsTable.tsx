@@ -127,7 +127,7 @@ export function RevoluteJointsTable({
         const mode = switchControlPressed ? "coordinates" : "joints";
         const map = gamepadControlMap?.[mode] || { axis: {}, button: {}, reversedKeys: [] };
         const r2 = gp.buttons[Button.RIGHT_BUMPER_2]?.pressed;
-        const l3 = gp.buttons[Button.RIGHT_STICK_CLICK]?.pressed;
+        const l3 = gp.buttons[Button.LEFT_STICK_CLICK]?.pressed;
 
         for (const axisIndexStr in map.axis) {
           const axisIndex = Number(axisIndexStr) as Axis; 
@@ -154,7 +154,7 @@ export function RevoluteJointsTable({
 
           if (!keyName) continue;
 
-          if (buttonIndex === Button.RIGHT_STICK_CLICK) {
+          if (buttonIndex === Button.LEFT_STICK_CLICK) {
             if (l3 && r2) newKeys.add(keyName + "-");
             else if (l3) newKeys.add(keyName + "+");
           } else if (isPressed) {

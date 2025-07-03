@@ -20,7 +20,7 @@ export enum Axis {
 export enum Button {
   RIGHT_BUMPER_1 = 5,
   RIGHT_BUMPER_2 = 7,
-  RIGHT_STICK_CLICK = 10,
+  LEFT_STICK_CLICK = 10,
   D_PAD_X_L = 14,
   D_PAD_X_R = 15,  
 }
@@ -83,7 +83,7 @@ export const robotConfigMap: { [key: string]: RobotConfig } = {
           [Axis.LEFT_STICK_Y]: "2",
         },
         button: {
-          [Button.RIGHT_STICK_CLICK]: "3", //3 => 3+, [Button.RIGHT_BUMPER_2]: "r2", //r2 + 3 => 3-
+          [Button.LEFT_STICK_CLICK]: "3", //3 => 3+, [Button.RIGHT_BUMPER_2]: "r2", //r2 + 3 => 3-
           [Button.D_PAD_X_L]: "g-",   
           [Button.D_PAD_X_R]: "g+",
         },
@@ -95,7 +95,7 @@ export const robotConfigMap: { [key: string]: RobotConfig } = {
           [Axis.LEFT_STICK_Y]: "x",
         },
         button: {
-          [Button.RIGHT_STICK_CLICK]: "z", //z => z+, [Button.RIGHT_BUMPER_2]: "r2", //r2 + z => z-
+          [Button.LEFT_STICK_CLICK]: "z", //z => z+, [Button.RIGHT_BUMPER_2]: "r2", //r2 + z => z-
           [Button.D_PAD_X_L]: "g-",   
           [Button.D_PAD_X_R]: "g+",
         },
@@ -155,7 +155,7 @@ export const robotConfigMap: { [key: string]: RobotConfig } = {
           [Axis.RIGHT_STICK_Y]: "4",
         },
         button: {
-          [Button.RIGHT_STICK_CLICK]: "3", //3 => 3+, [Button.RIGHT_BUMPER_2]: "r2", //r2 + 3 => 3-
+          [Button.LEFT_STICK_CLICK]: "3", //3 => 3+, [Button.RIGHT_BUMPER_2]: "r2", //r2 + 3 => 3-
           [Button.D_PAD_X_L]: "g-",   
           [Button.D_PAD_X_R]: "g+",
         },
@@ -169,7 +169,7 @@ export const robotConfigMap: { [key: string]: RobotConfig } = {
           [Axis.RIGHT_STICK_Y]: "p",
         },
         button: {
-          [Button.RIGHT_STICK_CLICK]: "z", //z => z+, [Button.RIGHT_BUMPER_2]: "r2", //r2 + z => z-
+          [Button.LEFT_STICK_CLICK]: "z", //z => z+, [Button.RIGHT_BUMPER_2]: "r2", //r2 + z => z-
           [Button.D_PAD_X_L]: "g-",   
           [Button.D_PAD_X_R]: "g+",
         },

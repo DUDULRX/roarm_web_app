@@ -43,13 +43,12 @@ Try the live demo here: [roarm_web_app](https://roarm-web-app.vercel.app)
 
    ```bash
    git clone https://github.com/waveshareteam/roarm_web_app.git
-   cd roarm_web_app
    ```
 
 2. Install dependencies:
 
    ```bash
-   npm install
+   cd roarm_web_app/website && npm install
    ```
 
 3. Run the development server:
@@ -94,14 +93,85 @@ This web app currently supports two robot models:
 - **roarm_m3**  
   ![Image](https://github.com/user-attachments/assets/52a3225d-24e4-41dc-90ac-a5f49c12945b)
 
-Each robot has its own URDF model, camera settings, control mappings, and coordinate controls.
+Each robot has its own control mappings, and coordinate controls.
+
+---
 
 ### Connecting to the Robot
 
-1. Open the web app in your browser at the deployed URL (e.g., [https://roarm-web-app.vercel.app](https://roarm-web-app.vercel.app)).
-2. Connect to the robot either via:
-   - **Serial connection**: Connect your computer directly to the robot using a USB cable.
-   - **WebSocket connection**: Connect remotely to the robot through a WebSocket server by entering the server URL.
+1. **Open the web app**
+   Open your browser and navigate to the deployed URL(demo):
+   👉 [https://roarm-web-app.vercel.app](https://roarm-web-app.vercel.app)
+
+2. **Connect to the robot**
+   You can connect using either of the following methods:
+
+#### 2.1 Serial Connection(Need to remote deployment)
+
+* Connect your computer directly to the robot using a USB cable.
+
+#### 2.2 WebSocket Connection(Need local deployment)
+
+Connect remotely to the robot through a WebSocket server by entering the server URL.
+
+##### Option A: `ws-server` (basic WebSocket without ROS dependencies)
+
+Handles direct WebSocket communication and ROS control.
+
+Install dependencies:
+
+```bash
+cd roarm_web_app/ws-server && npm install
+```
+
+Run the WebSocket server:
+
+```bash
+cd roarm_web_app/ws-server && node websocket-server.js
+```
+
+Launch the robot driver (requires ROS 2):
+
+```bash
+cd roarm_web_app/ws-server && python3 roarm_driver.py
+```
+
+##### Option B: `ros-ws-server` (requires ROS 2 installed)
+
+Install dependencies:
+
+```bash
+cd roarm_web_app/ros-ws-server && npm install
+```
+
+Run the WebSocket server:
+
+```bash
+cd roarm_web_app/ros-ws-server && node websocket-server.js
+```
+
+Launch the robot driver:
+
+```bash
+cd roarm_web_app/ros-ws-server && python3 roarm_driver.py
+```
+
+#### 2.3 Enter WebSocket Server URL in Web UI
+
+Once the server is running, enter the WebSocket server address in the input box (e.g.):
+
+```bash
+ws://<your-ip-address>:9090
+```
+
+Example:
+
+```bash
+ws://192.168.1.100:9090
+```
+
+
+![WebSocket UI](https://github.com/user-attachments/assets/1b06793f-9bc8-4031-af75-677da8dde2b9)
 
 ---
 
@@ -162,7 +232,7 @@ export enum Axis {
 export enum Button {
   RIGHT_BUMPER_1 = 5,
   RIGHT_BUMPER_2 = 7,
-  RIGHT_STICK_CLICK = 10,
+  LEFT_STICK_CLICK = 10,
   D_PAD_X_L = 14,
   D_PAD_X_R = 15,
 }
@@ -187,7 +257,7 @@ gamepadControlMap: {
       [Axis.RIGHT_STICK_Y]: "4",
     },
     button: {
-      [Button.RIGHT_STICK_CLICK]: "3",
+      [Button.LEFT_STICK_CLICK]: "3",
       [Button.D_PAD_X_L]: "g-",
       [Button.D_PAD_X_R]: "g+",
     },
@@ -201,7 +271,7 @@ gamepadControlMap: {
       [Axis.RIGHT_STICK_Y]: "p",
     },
     button: {
-      [Button.RIGHT_STICK_CLICK]: "z",
+      [Button.LEFT_STICK_CLICK]: "z",
       [Button.D_PAD_X_L]: "g-",
       [Button.D_PAD_X_R]: "g+",
     },
@@ -223,7 +293,7 @@ gamepadControlMap: {
 | Left Stick Y                        | Joint `2`                             |
 | Right Stick X                       | Joint `5`                             |
 | Right Stick Y                       | Joint `4`                             |
-| Right Stick Click                   | Joint `3+`                            |
+| Left Stick Click                   | Joint `3+`                            |
 | `RIGHT_BUMPER_2` + Right Stick Click| Joint `3−`                            |
 | D-Pad Left                          | Gripper open (`g-`)                   |
 | D-Pad Right                         | Gripper close (`g+`)                  |
@@ -236,7 +306,7 @@ gamepadControlMap: {
 | Left Stick Y                        | Move along X axis    |
 | Right Stick X                       | Rotate Roll (`r`)    |
 | Right Stick Y                       | Rotate Pitch (`p`)   |
-| Right Stick Click                   | Move Z+              |
+| Left Stick Click                   | Move Z+              |
 | `RIGHT_BUMPER_2` + Right Stick Click| Move Z−              |
 | D-Pad Left                          | Gripper open (`g-`)  |
 | D-Pad Right                         | Gripper close (`g+`) |
