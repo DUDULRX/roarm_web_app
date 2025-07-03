@@ -5,11 +5,11 @@ const wss = new WebSocket.Server({ port: 9091 });
 const clients = new Set();
 
 wss.on('connection', (ws) => {
-  console.log('[WS] 客户端已连接');
+  console.log('[WS] clients connected');
   clients.add(ws);
 
   ws.on('message', (message) => {
-    console.log('[WS] 收到消息:', message.toString());
+    console.log('[WS] receive:', message.toString());
 
     try {
       const data = JSON.parse(message.toString());
@@ -20,15 +20,15 @@ wss.on('connection', (ws) => {
         }
       });
     } catch (err) {
-      console.error('[WS] JSON 解析失败:', err);
+      console.error('[WS] JSON decode error:', err);
     }
   });
   
   ws.on('close', () => {
-    console.log('[WS] 客户端断开连接');
+    console.log('[WS] disconnected');
     clients.delete(ws);
   });
 });
 
-console.log('[WS] WebSocket Server 启动在 ws://localhost:9091');
+console.log('[WS] WebSocket Server ws://localhost:9091');
 

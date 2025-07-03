@@ -204,16 +204,13 @@ export namespace roarm_m3 {
   const lE = Math.sqrt(lEA * lEA + lEB * lEB);
   const tErad = Math.atan2(lEB, lEA);
 
-  // 机械臂状态变量，用 let 声明，方便后续更新
   let SHOULDER_JOINT_RAD = 0;
   let ELBOW_JOINT_RAD = Math.PI / 2;
   let EOAT_JOINT_RAD_BUFFER: number;
 
-  // 其他状态变量
   let nanIK = false;
   let nanFK = false;
 
-  // 初始化值
   let lastX = l2B + l3A + ARM_L4_LENGTH_MM_A;
   let lastY = 0;
   let lastZ = l2A - ARM_L4_LENGTH_MM_B;

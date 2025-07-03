@@ -3,7 +3,7 @@ const rclnodejs = require('rclnodejs');
 
 async function initROS(node) {
   // pub
-  const publisher = node.createPublisher('std_msgs/msg/Float64MultiArray', 'roarm_command');
+  const publisher = node.createPublisher('std_msgs/msg/Float64MultiArray', 'roarm_leader_command');
   return publisher;
 }
 
@@ -13,11 +13,11 @@ async function startServer() {
 
   const publisher = await initROS(node);
 
-  const wss = new WebSocket.Server({ port: 9090 });
+  const wss = new WebSocket.Server({ port: 9091 });
 
   node.createSubscription(
     'std_msgs/msg/Float64MultiArray',
-    'roarm_feedback',
+    'roarm_leader_feedback',
     (msg) => {
       const feedback = {
         type: 'feedback',

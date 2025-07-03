@@ -8,7 +8,7 @@ from roarm_sdk.roarm import roarm
 class RoarmDriver(Node):
     def __init__(self):
         super().__init__('roarm_driver')
-        self.declare_parameter('serial_port', '/dev/ttyUSB0')
+        self.declare_parameter('serial_port', '/dev/ttyUSB1')
         self.declare_parameter('baud_rate', 115200)
 
         port = self.get_parameter('serial_port').value
@@ -16,8 +16,8 @@ class RoarmDriver(Node):
         self.roarm_type = os.environ.get('ROARM_MODEL', 'roarm_m3')
         self.roarm = roarm(roarm_type=self.roarm_type, port=port, baudrate=baud)
 
-        self.create_subscription(Float64MultiArray, 'roarm_command', self.command_callback, 10)
-        self.feedback_pub = self.create_publisher(Float64MultiArray, 'roarm_feedback', 10)
+        self.create_subscription(Float64MultiArray, 'roarm_leader_command', self.command_callback, 10)
+        self.feedback_pub = self.create_publisher(Float64MultiArray, 'roarm_leader_feedback', 10)
 
     def command_callback(self, msg: Float64MultiArray):
         data = list(msg.data)
@@ -30,7 +30,7 @@ class RoarmDriver(Node):
 
         try:
             if cmd == 105:
-                angles = self.roarm.joints_angle_get() 
+                angles = self.roarm.joints_angle_get()  
                 if angles:
                     feedback_msg = Float64MultiArray()
                     feedback_msg.data = angles
