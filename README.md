@@ -17,59 +17,60 @@ Try the live demo here: [roarm_web_app](https://roarm-web-app.vercel.app)
 
     ### Supported Robots
 
-    Each robot has its own control mappings, and coordinate controls.
+    Each robot has its own control mappings and coordinate controls.
 
     - **roarm_m2**  
       ![Image](https://github.com/user-attachments/assets/7a876457-2464-4941-9106-1e891d28d76e)
 
     - **roarm_m3**  
       ![Image](https://github.com/user-attachments/assets/52a3225d-24e4-41dc-90ac-a5f49c12945b)
-- **Keyboard Control**: Web interface to control robots intuitively.
-- **Gamepad Control**: Web interface to control robots intuitively.
-- **Keyboard Controls Panel Control**: Web interface to control robots intuitively.
-- **Record Dataset Panel Control**: Web interface to control robots intuitively.
+
+- **Keyboard Control**: Intuitive web interface for keyboard operation.
+- **Gamepad Control**: Intuitive web interface for gamepad operation.
+- **Keyboard Controls Panel**: Dedicated web panel for keyboard control.
+- **Record Dataset Panel**: Web panel for recording and replaying datasets.
 - **Real-Robot Communication**: Supports Serial and WebSocket connections.
-- **Control via Leader Robot**: Supports Serial and WebSocket connections.
+- **Control via Leader Robot**: Enables controlling follower robots through a leader robot.
 
 ---
 
 ## Deployment
 
-You can deploy to platforms like Vercel, or local.
+You can deploy to platforms like Vercel, or locally.
 
-#### Deploy on Vercel
+### Deploy on Vercel
 
 - Push your repository to GitHub.
 - Go to [https://vercel.com](https://vercel.com) and import the repo.
 - Follow Vercel’s instructions to deploy automatically.
 
-#### Deploy on Local
+### Deploy Locally
 
-##### Prerequisites
+#### Prerequisites
 
 - Node.js (>=14.x)
 - npm (comes with Node.js)
-- ros2 (option)
+- ros2 (optional)
 
-##### Clone the repository:
+#### Clone the repository:
 
-   ```bash
-   git clone https://github.com/waveshareteam/roarm_web_app.git
-   ```
+```bash
+git clone https://github.com/waveshareteam/roarm_web_app.git
+```
 
-##### Install dependencies:
+#### Install dependencies:
 
    ```bash
    cd roarm_web_app/website && npm install
    ```
 
-##### Run the development server:
+#### Run the development server:
 
    ```bash
    cd roarm_web_app/website && npm run dev
    ```
 
-##### Open your browser and navigate to `http://localhost:3000` if running locally.
+#### Open your browser and navigate to `http://localhost:3000` if running locally.
 
    If you're accessing the web app from another device in the same network, replace `localhost` with your computer's IP address, like:
 
@@ -212,7 +213,7 @@ gamepadControlMap: {
 - **Mode Switch**: Hold `RIGHT_BUMPER_1` to toggle between modes.
 - **Direction Reversal**: Some controls like Joint 5 and Roll are reversed by default.
 - **Gripper Control**: Use D-Pad for open/close.
-- **Robot Compatibility**: These mappings are for `roarm_m3`. The `roarm_m2` model uses a simplified version.
+- **Robot Compatibility**: These mappings are for `roarm_m3`. `roarm_m2` model uses a simplified version.
 
 ---
 
@@ -222,20 +223,18 @@ gamepadControlMap: {
 
 - Use the "Keyboard Controls" panels to control robot joints and coordinates.
 - Control behavior depends on the robot model but typically includes:
-  - Press button `s` to toggle movement direction between forward and reverse.
-  - Buttons `1`, `2`, `3` (and `4`, `5` for `roarm_m3`) to move individual joints.
-  - Buttons `X`, `Y`, and `Z` to move the end-effector in 3D space.
-  - For `roarm_m3`, additional buttons `R` and `P` control the roll and pitch.
+  - Press button `s` to toggle direction forward/reverse.
+  - Buttons `1`, `2`, `3` (and `4`, `5` for `roarm_m3`) to move joints.
+  - Buttons `X`, `Y`, and `Z` to move end-effector in 3D space.
+  - For `roarm_m3`, additional buttons `R` and `P` control roll and pitch.
   - Button `G` to control the gripper.
-- If the robot arm is connected, you can see the following buttons, which are as follows:
-
-  - Button `Update Real Angles` to Update the real angles.
-  - Button `Start Update Virtual Angles By eal Angles` to update the virtual angles by continuously obtaining real angles(The torque of the robotic arm will be turned off first and then read).
+- If the robot arm is connected, these buttons appear:
+  - Button `Update Real Angles`  — updates real joint angles.
+  - Button `Start Update Virtual Angles By eal Angles` — continuously updates virtual angles from real ones (robot torque disabled first).
 
     ![Image](https://github.com/user-attachments/assets/7f85fdd2-e21d-474c-8f89-29b45fb0ddcc)
 
-  - When click button `Start Update Virtual Angles By eal Angles`，it will turn into button `Stop Update Virtual Angles By eal Angles`，click it to stop update the virtual angles by continuously obtaining real angles(The robotic arm will stop reading first and then reopen the torque).
-
+    - Clicking it toggles to button `Stop Update Virtual Angles By Real Angles` (stop continuous update and re-enable torque).
 ---
 
 ### Record Dataset Panel
@@ -244,12 +243,12 @@ gamepadControlMap: {
 
 - Use the "Record Dataset” panels to record and replay the virtual angles.
 
-  - Button `News` to creat a new dataset.
-  - Button `Pause` to pause while recording.
-  - Button `stop` to stop record and save dataset.
-  - Button `Replay` to update the virtual angles by replaying dataset(options: In Keyboard Controls Panel to connect and control real robot arm).
-    - When click button `Replay`，it will turn into button `Stop Replay`，click it to stop update the virtual angles by replaying dataset.(Pay attention to safety when connecting real robotic arms，the robotic arm will suddenly return to the initial position of the record).
-
+  - Button `News` — create new dataset.
+  - Button `Pause` — pause recording.
+  - Button `stop` — stop and save dataset.
+  - Button `Replay` — replay dataset to update virtual angles (can control real robot if connected).
+    - Button toggles to `Stop Replay` to stop playback.
+    - Safety note: When stop replaying connected real robot arms, robotic arm may suddenly jump to recorded initial position.
   ![Image](https://github.com/user-attachments/assets/7ceecfa6-da58-4934-a202-d82d1a80aa24)
 
 ---
@@ -257,19 +256,19 @@ gamepadControlMap: {
 ### Connecting to the Robot
 
 1. **Open the web app**
-   Open your browser and navigate to the deployed URL(demo):
+   Navigate to the deployed URL (demo):
    👉 [https://roarm-web-app.vercel.app](https://roarm-web-app.vercel.app)
 
 2. **Connect to the robot**
-   You can connect using either of the following methods:
+   Choose one method:
 
-#### 2.1 Serial Connection(Need remote deployment)
+#### 2.1 Serial Connection (needs remote deployment)
 
-- Connect your computer directly to the robot using a USB cable.
+- Connect computer directly via USB cable.
 
-#### 2.2 WebSocket Connection(Need local deployment)
+#### 2.2 WebSocket Connection (needs local deployment)
 
-Connect remotely to the robot through a WebSocket server by entering the server URL.
+Connect remotely through WebSocket server by entering server URL.
 
 In "Keyboard Controls" panel:
 
@@ -279,7 +278,7 @@ In "Control via Leader Robot" panel:
 
 ![Image](https://github.com/user-attachments/assets/eed90f83-2cc6-47a9-bcc2-dbc8c8a84d36)
 
-##### Option A: `ws-server` (basic WebSocket without ROS dependencies)
+##### Option A: `ws-server` (basic WebSocket, no ROS)
 
 Handles direct WebSocket communication and ROS control.
 
@@ -301,7 +300,7 @@ Launch the robot driver:
 cd roarm_web_app/ws-server && python3 roarm_driver.py
 ```
 
-##### Option B: `ws-server-leader` (basic WebSocket without ROS dependencies)
+##### Option B: `ws-server-leader` (basic WebSocket, no ROS)
 
 Run the WebSocket leader server:
 
@@ -315,7 +314,7 @@ Launch the robot driver:
 cd roarm_web_app/ws-server && python3 roarm_driver_leader.py
 ```
 
-##### Option C: `ros-ws-server` (requires ROS 2 installed)
+##### Option C: `ros-ws-server` (requires ROS 2)
 
 Install dependencies:
 
@@ -335,7 +334,7 @@ Launch the robot driver(requires ROS 2):
 cd roarm_web_app/ros-ws-server && python3 roarm_driver.py
 ```
 
-##### Option D: `ros-ws-server-leader` (requires ROS 2 installed)
+##### Option D: `ros-ws-server-leader` (requires ROS 2)
 
 Run the WebSocket server:
 
@@ -351,7 +350,7 @@ cd roarm_web_app/ros-ws-server && python3 roarm_driver_leader.py
 
 #### 2.3 Enter WebSocket Server URL in Web UI
 
-Once the server is running, enter the WebSocket server address in the input box (e.g.):
+Enter server URL, e.g.:
 
 ```bash
 ws://<your-ip-address>:9090
@@ -369,7 +368,7 @@ ws://192.168.9.185:9090
 
 ![Image](https://github.com/user-attachments/assets/5fdc4cf4-97f2-462b-abc7-93df1054e5ea)
 
-- Use the "Control via Leader Robot” panels to update the virtual angles.
+- Use the "Control via Leader Robot” panels to update the virtual angles from the leader robot..
 
 ---
 
